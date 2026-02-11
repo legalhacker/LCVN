@@ -18,7 +18,7 @@ export default function TopicGrid() {
         {topics.map((topic) => (
           <li key={topic.slug}>
             <Link
-              href={`/chu-de/${topic.slug}`}
+              href={`/topic/${topic.slug}`}
               className="group block rounded-lg border border-gray-150 p-5 transition-all hover:border-gray-300 hover:shadow-sm"
             >
               <h3 className="text-sm font-semibold text-gray-900 group-hover:text-black">
