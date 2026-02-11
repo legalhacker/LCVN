@@ -7,6 +7,7 @@ export interface ContentDocument {
   effectiveDate: string;
   summary: string;
   slug: string;
+  dbSlug?: string;
 }
 
 export interface TopicInfo {

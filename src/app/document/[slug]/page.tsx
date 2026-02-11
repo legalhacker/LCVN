@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import {
   getAllDocumentSlugs,
   getDocumentBySlug,
   getTopicInfo,
 } from "@/lib/content";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ slug: string }>;
-}
-
-export function generateStaticParams() {
-  return getAllDocumentSlugs().map(({ slug }) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -31,6 +30,30 @@ export default async function DocumentPage({ params }: Props) {
   if (!doc) notFound();
 
   const topic = getTopicInfo(doc.topic);
+
+  // Query DB for the legal document and its articles
+  // dbSlug maps the content URL slug to the DB's Vietnamese slug
+  const dbDoc = await prisma.legalDocument.findUnique({
+    where: { slug: doc.dbSlug || slug },
+    include: {
+      articles: {
+        orderBy: { articleNumber: "asc" },
+        include: {
+          _count: { select: { clauses: true } },
+        },
+      },
+    },
+  });
+
+  const articles = dbDoc?.articles ?? [];
+
+  // Group articles by chapter
+  const chapters: Record<string, typeof articles> = {};
+  for (const article of articles) {
+    const ch = article.chapter || "General";
+    if (!chapters[ch]) chapters[ch] = [];
+    chapters[ch].push(article);
+  }
 
   return (
     <section className="mx-auto max-w-4xl px-4 sm:px-6 pt-16 pb-24">
@@ -64,6 +87,14 @@ export default async function DocumentPage({ params }: Props) {
           <dd className="font-mono text-gray-700">{doc.documentNumber}</dd>
           <dt className="text-gray-400">Effective Date</dt>
           <dd className="text-gray-700">{doc.effectiveDate}</dd>
+          {dbDoc && (
+            <>
+              <dt className="text-gray-400">Issuing Body</dt>
+              <dd className="text-gray-700">{dbDoc.issuingBody}</dd>
+              <dt className="text-gray-400">Status</dt>
+              <dd className="text-gray-700 capitalize">{dbDoc.status}</dd>
+            </>
+          )}
           {topic && (
             <>
               <dt className="text-gray-400">Topic</dt>
@@ -79,9 +110,58 @@ export default async function DocumentPage({ params }: Props) {
           )}
         </dl>
 
-        <div className="mt-8 prose prose-sm prose-gray max-w-none">
-          <p className="text-gray-600 leading-relaxed">{doc.summary}</p>
+        <div className="mt-8">
+          <p className="text-sm text-gray-600 leading-relaxed">{doc.summary}</p>
         </div>
+
+        {/* Articles table of contents */}
+        {articles.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-6">
+              Articles ({articles.length})
+            </h2>
+
+            <div className="space-y-8">
+              {Object.entries(chapters).map(([chapter, chapterArticles]) => (
+                <div key={chapter}>
+                  {Object.keys(chapters).length > 1 && (
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                      {chapter}
+                    </h3>
+                  )}
+                  <ul className="divide-y divide-gray-50">
+                    {chapterArticles.map((article) => (
+                      <li key={article.articleNumber}>
+                        <Link
+                          href={`/luat/${doc.dbSlug || slug}/${dbDoc!.year}/dieu-${article.articleNumber}`}
+                          className="group flex items-baseline gap-3 py-3 -mx-3 px-3 rounded-lg transition-colors hover:bg-gray-50"
+                        >
+                          <span className="shrink-0 text-sm font-semibold text-gray-900 group-hover:text-black">
+                            Điều {article.articleNumber}
+                          </span>
+                          {article.title && (
+                            <span className="text-sm text-gray-500 group-hover:text-gray-700 min-w-0 truncate">
+                              {article.title}
+                            </span>
+                          )}
+                          <span className="ml-auto shrink-0 text-[11px] text-gray-400">
+                            {article._count.clauses} khoản
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {articles.length === 0 && dbDoc === null && (
+          <p className="mt-12 text-sm text-gray-400 italic">
+            Article data for this document is not yet available in the database.
+          </p>
+        )}
       </article>
     </section>
   );
