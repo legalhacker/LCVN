@@ -21,6 +21,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   });
 
+  // API docs
+  entries.push({
+    url: `${BASE_URL}/api-docs`,
+    changeFrequency: "monthly",
+    priority: 0.5,
+  });
+
   // Topic pages
   const topicSlugs = getAllTopicSlugs();
   for (const slug of topicSlugs) {

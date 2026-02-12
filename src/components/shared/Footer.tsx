@@ -20,6 +20,9 @@ export default function Footer() {
             <Link href="/doc/bo-luat-lao-dong/2019" className="hover:text-gray-600 transition-colors">
               Documents
             </Link>
+            <Link href="/api-docs" className="hover:text-gray-600 transition-colors">
+              API
+            </Link>
           </nav>
         </div>
       </div>
