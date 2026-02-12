@@ -11,8 +11,14 @@ interface Props {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { q } = await searchParams;
+  const title = q ? `"${q}" - Search - LCVN` : "Search - LCVN";
   return {
-    title: q ? `"${q}" - Search - LCVN` : "Search - LCVN",
+    title,
+    openGraph: {
+      title,
+      description: "Search Vietnamese legal documents — articles, clauses, and points.",
+      url: "/search",
+    },
   };
 }
 

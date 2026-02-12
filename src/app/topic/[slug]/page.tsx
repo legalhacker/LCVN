@@ -22,6 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${topic.name} - LCVN`,
     description: topic.description,
+    openGraph: {
+      title: `${topic.name} - LCVN`,
+      description: topic.description,
+      url: `/topic/${slug}`,
+    },
   };
 }
 

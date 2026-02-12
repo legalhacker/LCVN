@@ -95,6 +95,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `${BASE_URL}${canonicalPath}`,
     },
+    openGraph: {
+      title: `${title} | LCVN`,
+      description: `${title} - ${doc.documentNumber} - ${doc.issuingBody}`,
+      url: `${BASE_URL}${canonicalPath}`,
+      type: "article",
+    },
   };
 }
 

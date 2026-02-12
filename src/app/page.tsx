@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${BASE_URL}/`,
   },
+  openGraph: {
+    title: "LCVN - Legal Compliance in Vietnam",
+    description: "Structured Vietnamese legal documents optimized for research, navigation, and citation.",
+    url: `${BASE_URL}/`,
+  },
 };
 
 const jsonLd = {

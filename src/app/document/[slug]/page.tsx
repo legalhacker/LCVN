@@ -21,6 +21,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${doc.title} - LCVN`,
     description: doc.summary,
+    openGraph: {
+      title: `${doc.title} - LCVN`,
+      description: doc.summary,
+      url: `/document/${slug}`,
+    },
   };
 }
 
