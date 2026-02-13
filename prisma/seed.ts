@@ -775,6 +775,516 @@ async function main() {
   });
 
   // ================================================================
+  // DOCUMENT 3: Luật Doanh nghiệp 2020 (Enterprise Law)
+  // ================================================================
+  const enterpriseLaw = await prisma.legalDocument.create({
+    data: {
+      canonicalId: "VN_LDN_2020",
+      title: "Luật Doanh nghiệp",
+      documentNumber: "59/2020/QH14",
+      documentType: "luat",
+      issuingBody: "Quốc hội",
+      issuedDate: new Date("2020-06-17"),
+      effectiveDate: new Date("2021-01-01"),
+      slug: "luat-doanh-nghiep",
+      year: 2020,
+      status: "active",
+    },
+  });
+
+  // ---- CHAPTER I: GENERAL PROVISIONS (Điều 1-8) ----
+
+  const dn_art1 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D1",
+      documentId: enterpriseLaw.id,
+      articleNumber: 1,
+      title: "Phạm vi điều chỉnh",
+      content:
+        "Luật này quy định về việc thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp, bao gồm công ty trách nhiệm hữu hạn, công ty cổ phần, công ty hợp danh và doanh nghiệp tư nhân; quy định về nhóm công ty.",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_art2 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D2",
+      documentId: enterpriseLaw.id,
+      articleNumber: 2,
+      title: "Đối tượng áp dụng",
+      content: "Luật này áp dụng đối với doanh nghiệp và các tổ chức, cá nhân có liên quan đến việc thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp.",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_art3 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D3",
+      documentId: enterpriseLaw.id,
+      articleNumber: 3,
+      title: "Áp dụng Luật Doanh nghiệp và các luật chuyên ngành",
+      content: "Trường hợp luật chuyên ngành có quy định đặc thù về việc thành lập, tổ chức quản lý, tổ chức lại, giải thể và hoạt động có liên quan của doanh nghiệp thì áp dụng quy định của luật đó.",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_art4 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D4",
+      documentId: enterpriseLaw.id,
+      articleNumber: 4,
+      title: "Giải thích từ ngữ",
+      content: "Trong Luật này, các từ ngữ dưới đây được hiểu như sau:",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_c4_1 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D4_K1",
+      articleId: dn_art4.id,
+      clauseNumber: 1,
+      content:
+        "Doanh nghiệp là tổ chức có tên riêng, có tài sản, có trụ sở giao dịch, được thành lập hoặc đăng ký thành lập theo quy định của pháp luật nhằm mục đích kinh doanh.",
+    },
+  });
+  const dn_c4_2 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D4_K2",
+      articleId: dn_art4.id,
+      clauseNumber: 2,
+      content:
+        "Doanh nghiệp nhà nước bao gồm các doanh nghiệp do Nhà nước nắm giữ trên 50% vốn điều lệ, tổng số cổ phần có quyền biểu quyết theo quy định tại Điều 88 của Luật này.",
+    },
+  });
+  const dn_c4_3 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D4_K3",
+      articleId: dn_art4.id,
+      clauseNumber: 3,
+      content:
+        "Doanh nghiệp xã hội là doanh nghiệp được thành lập theo quy định của Luật này, mục tiêu hoạt động nhằm giải quyết vấn đề xã hội, môi trường vì lợi ích cộng đồng, sử dụng ít nhất 51% tổng lợi nhuận sau thuế hằng năm của doanh nghiệp để tái đầu tư nhằm thực hiện mục tiêu đã đăng ký.",
+    },
+  });
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D4_K4",
+        articleId: dn_art4.id,
+        clauseNumber: 4,
+        content: "Góp vốn là việc góp tài sản để tạo thành vốn điều lệ của công ty, bao gồm góp vốn để thành lập công ty hoặc góp thêm vốn điều lệ của công ty đã được thành lập.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D4_K5",
+        articleId: dn_art4.id,
+        clauseNumber: 5,
+        content: "Phần vốn góp là tổng giá trị tài sản của một thành viên đã góp hoặc cam kết góp vào công ty trách nhiệm hữu hạn, công ty hợp danh. Tỷ lệ phần vốn góp là tỷ lệ giữa phần vốn góp của một thành viên với vốn điều lệ của công ty trách nhiệm hữu hạn, công ty hợp danh.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D4_K6",
+        articleId: dn_art4.id,
+        clauseNumber: 6,
+        content: "Cổ phần là phần chia nhỏ nhất vốn điều lệ của công ty cổ phần.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D4_K7",
+        articleId: dn_art4.id,
+        clauseNumber: 7,
+        content: "Cổ phiếu là chứng chỉ do công ty cổ phần phát hành, bút toán ghi sổ hoặc dữ liệu điện tử xác nhận quyền sở hữu một hoặc một số cổ phần của công ty đó.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D4_K8",
+        articleId: dn_art4.id,
+        clauseNumber: 8,
+        content: "Cổ đông là cá nhân, tổ chức sở hữu ít nhất một cổ phần của công ty cổ phần.",
+      },
+    ],
+  });
+
+  const dn_art5 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D5",
+      documentId: enterpriseLaw.id,
+      articleNumber: 5,
+      title: "Bảo đảm của Nhà nước đối với doanh nghiệp và chủ sở hữu doanh nghiệp",
+      content: "Nhà nước bảo đảm quyền và lợi ích hợp pháp của doanh nghiệp và chủ sở hữu doanh nghiệp:",
+      chapter: "Chương I",
+    },
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D5_K1",
+        articleId: dn_art5.id,
+        clauseNumber: 1,
+        content: "Nhà nước công nhận và bảo hộ quyền sở hữu tài sản, vốn đầu tư, thu nhập, quyền và lợi ích hợp pháp khác của doanh nghiệp và chủ sở hữu doanh nghiệp.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D5_K2",
+        articleId: dn_art5.id,
+        clauseNumber: 2,
+        content: "Tài sản và vốn đầu tư hợp pháp của doanh nghiệp và chủ sở hữu doanh nghiệp không bị quốc hữu hóa, không bị tịch thu bằng biện pháp hành chính.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D5_K3",
+        articleId: dn_art5.id,
+        clauseNumber: 3,
+        content: "Trường hợp cần thiết vì lý do quốc phòng, an ninh hoặc vì lợi ích quốc gia, tình trạng khẩn cấp, phòng, chống thiên tai, Nhà nước trưng mua hoặc trưng dụng có bồi thường tài sản của doanh nghiệp theo giá thị trường tại thời điểm công bố trưng mua hoặc trưng dụng theo quy định của pháp luật về trưng mua, trưng dụng tài sản.",
+      },
+    ],
+  });
+
+  const dn_art7 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D7",
+      documentId: enterpriseLaw.id,
+      articleNumber: 7,
+      title: "Quyền của doanh nghiệp",
+      content: "Doanh nghiệp có các quyền sau đây:",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_c7_1 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D7_K1",
+      articleId: dn_art7.id,
+      clauseNumber: 1,
+      content: "Tự do kinh doanh ngành, nghề mà luật không cấm.",
+    },
+  });
+  const dn_c7_2 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D7_K2",
+      articleId: dn_art7.id,
+      clauseNumber: 2,
+      content: "Tự chủ kinh doanh và lựa chọn hình thức tổ chức kinh doanh; chủ động lựa chọn ngành, nghề, địa bàn, hình thức kinh doanh; chủ động điều chỉnh quy mô và ngành, nghề kinh doanh.",
+    },
+  });
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D7_K3",
+        articleId: dn_art7.id,
+        clauseNumber: 3,
+        content: "Lựa chọn hình thức, phương thức huy động, phân bổ và sử dụng vốn.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D7_K4",
+        articleId: dn_art7.id,
+        clauseNumber: 4,
+        content: "Tự do tìm kiếm thị trường, khách hàng và ký kết hợp đồng.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D7_K5",
+        articleId: dn_art7.id,
+        clauseNumber: 5,
+        content: "Kinh doanh xuất khẩu, nhập khẩu.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D7_K6",
+        articleId: dn_art7.id,
+        clauseNumber: 6,
+        content: "Tuyển dụng, thuê và sử dụng lao động theo quy định của pháp luật về lao động.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D7_K7",
+        articleId: dn_art7.id,
+        clauseNumber: 7,
+        content: "Chủ động ứng dụng khoa học và công nghệ để nâng cao hiệu quả kinh doanh và khả năng cạnh tranh; được bảo hộ quyền sở hữu trí tuệ theo quy định của pháp luật về sở hữu trí tuệ.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D7_K8",
+        articleId: dn_art7.id,
+        clauseNumber: 8,
+        content: "Chiếm hữu, sử dụng, định đoạt tài sản của doanh nghiệp.",
+      },
+    ],
+  });
+
+  const dn_art8 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D8",
+      documentId: enterpriseLaw.id,
+      articleNumber: 8,
+      title: "Nghĩa vụ của doanh nghiệp",
+      content: "Doanh nghiệp có các nghĩa vụ sau đây:",
+      chapter: "Chương I",
+    },
+  });
+
+  const dn_c8_1 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D8_K1",
+      articleId: dn_art8.id,
+      clauseNumber: 1,
+      content: "Đáp ứng đủ điều kiện kinh doanh khi kinh doanh ngành, nghề đầu tư kinh doanh có điều kiện; bảo đảm duy trì đủ điều kiện kinh doanh trong suốt quá trình hoạt động kinh doanh.",
+    },
+  });
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D8_K2",
+        articleId: dn_art8.id,
+        clauseNumber: 2,
+        content: "Tổ chức công tác kế toán, nộp thuế và thực hiện các nghĩa vụ tài chính khác theo quy định của pháp luật.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D8_K3",
+        articleId: dn_art8.id,
+        clauseNumber: 3,
+        content: "Bảo đảm quyền, lợi ích hợp pháp, chính đáng của người lao động theo quy định của pháp luật về lao động; không phân biệt đối xử, xúc phạm danh dự, nhân phẩm của người lao động trong doanh nghiệp; không ngược đãi lao động, cưỡng bức lao động hoặc sử dụng lao động chưa thành niên trái pháp luật; hỗ trợ và tạo điều kiện thuận lợi cho người lao động tham gia đào tạo nâng cao trình độ, kỹ năng nghề; thực hiện chế độ bảo hiểm xã hội, bảo hiểm thất nghiệp, bảo hiểm y tế và bảo hiểm khác cho người lao động theo quy định của pháp luật.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D8_K4",
+        articleId: dn_art8.id,
+        clauseNumber: 4,
+        content: "Bảo đảm và chịu trách nhiệm về chất lượng hàng hóa, dịch vụ theo tiêu chuẩn do pháp luật quy định hoặc tiêu chuẩn đã đăng ký hoặc công bố.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D8_K5",
+        articleId: dn_art8.id,
+        clauseNumber: 5,
+        content: "Thực hiện đầy đủ, kịp thời các nghĩa vụ về đăng ký doanh nghiệp, đăng ký thay đổi nội dung đăng ký doanh nghiệp, công khai thông tin về thành lập và hoạt động, báo cáo và các nghĩa vụ khác theo quy định của Luật này và quy định khác của pháp luật có liên quan.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D8_K6",
+        articleId: dn_art8.id,
+        clauseNumber: 6,
+        content: "Chịu trách nhiệm về tính trung thực, chính xác của thông tin kê khai trong hồ sơ đăng ký doanh nghiệp và các báo cáo; trường hợp phát hiện thông tin đã kê khai hoặc báo cáo thiếu chính xác, chưa đầy đủ thì phải kịp thời sửa đổi, bổ sung các thông tin đó.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D8_K7",
+        articleId: dn_art8.id,
+        clauseNumber: 7,
+        content: "Tuân thủ quy định của pháp luật về quốc phòng, an ninh, trật tự, an toàn xã hội, bình đẳng giới, bảo vệ tài nguyên, môi trường, bảo vệ di tích lịch sử - văn hóa và danh lam thắng cảnh.",
+      },
+    ],
+  });
+
+  // ---- CHAPTER II: ESTABLISHMENT (Điều 16, 17) ----
+
+  const dn_art16 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D16",
+      documentId: enterpriseLaw.id,
+      articleNumber: 16,
+      title: "Quyền thành lập, góp vốn, mua cổ phần, mua phần vốn góp và quản lý doanh nghiệp",
+      content: "Tổ chức, cá nhân có quyền thành lập và quản lý doanh nghiệp tại Việt Nam theo quy định của Luật này, trừ trường hợp quy định tại khoản 2 Điều này.",
+      chapter: "Chương II",
+    },
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D16_K1",
+        articleId: dn_art16.id,
+        clauseNumber: 1,
+        content: "Tổ chức, cá nhân có quyền thành lập và quản lý doanh nghiệp tại Việt Nam theo quy định của Luật này, trừ trường hợp quy định tại khoản 2 Điều này.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D16_K2",
+        articleId: dn_art16.id,
+        clauseNumber: 2,
+        content: "Tổ chức, cá nhân sau đây không có quyền thành lập và quản lý doanh nghiệp tại Việt Nam:",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D16_K3",
+        articleId: dn_art16.id,
+        clauseNumber: 3,
+        content: "Tổ chức, cá nhân có quyền góp vốn, mua cổ phần, mua phần vốn góp vào công ty cổ phần, công ty trách nhiệm hữu hạn, công ty hợp danh theo quy định của Luật này, trừ trường hợp quy định tại khoản 4 Điều này.",
+      },
+    ],
+  });
+
+  const dn_c16_2 = await prisma.clause.findFirst({
+    where: { canonicalId: "VN_LDN_2020_D16_K2" },
+  });
+
+  await prisma.point.createMany({
+    data: [
+      { canonicalId: "VN_LDN_2020_D16_K2_A", clauseId: dn_c16_2!.id, pointLetter: "a", content: "Cơ quan nhà nước, đơn vị lực lượng vũ trang nhân dân sử dụng tài sản nhà nước để thành lập doanh nghiệp kinh doanh thu lợi riêng cho cơ quan, đơn vị mình;" },
+      { canonicalId: "VN_LDN_2020_D16_K2_B", clauseId: dn_c16_2!.id, pointLetter: "b", content: "Cán bộ, công chức, viên chức theo quy định của Luật Cán bộ, công chức và Luật Viên chức;" },
+      { canonicalId: "VN_LDN_2020_D16_K2_C", clauseId: dn_c16_2!.id, pointLetter: "c", content: "Sĩ quan, hạ sĩ quan, quân nhân chuyên nghiệp, công nhân, viên chức quốc phòng trong các cơ quan, đơn vị thuộc Quân đội nhân dân Việt Nam; sĩ quan, hạ sĩ quan chuyên nghiệp, công nhân công an trong các cơ quan, đơn vị thuộc Công an nhân dân Việt Nam, trừ người được cử làm đại diện theo ủy quyền để quản lý phần vốn góp của Nhà nước tại doanh nghiệp hoặc quản lý tại doanh nghiệp nhà nước;" },
+      { canonicalId: "VN_LDN_2020_D16_K2_D", clauseId: dn_c16_2!.id, pointLetter: "d", content: "Cán bộ lãnh đạo, quản lý nghiệp vụ trong doanh nghiệp nhà nước theo quy định tại điểm a khoản 1 Điều 88 của Luật này, trừ người được cử làm đại diện theo ủy quyền để quản lý phần vốn góp của Nhà nước tại doanh nghiệp khác;" },
+      { canonicalId: "VN_LDN_2020_D16_K2_DD", clauseId: dn_c16_2!.id, pointLetter: "e", content: "Người chưa thành niên; người bị hạn chế năng lực hành vi dân sự; người bị mất năng lực hành vi dân sự; người có khó khăn trong nhận thức, làm chủ hành vi; tổ chức không có tư cách pháp nhân;" },
+      { canonicalId: "VN_LDN_2020_D16_K2_E", clauseId: dn_c16_2!.id, pointLetter: "f", content: "Người đang bị truy cứu trách nhiệm hình sự, bị tạm giam, đang chấp hành hình phạt tù, đang chấp hành biện pháp xử lý hành chính tại cơ sở cai nghiện bắt buộc, cơ sở giáo dục bắt buộc hoặc đang bị Tòa án cấm đảm nhiệm chức vụ, cấm hành nghề hoặc làm công việc nhất định; các trường hợp khác theo quy định của Luật Phá sản, Luật Phòng, chống tham nhũng." },
+    ],
+  });
+
+  const dn_art17 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D17",
+      documentId: enterpriseLaw.id,
+      articleNumber: 17,
+      title: "Hồ sơ đăng ký doanh nghiệp",
+      content: "Hồ sơ đăng ký doanh nghiệp bao gồm các giấy tờ sau đây:",
+      chapter: "Chương II",
+    },
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D17_K1",
+        articleId: dn_art17.id,
+        clauseNumber: 1,
+        content: "Giấy đề nghị đăng ký doanh nghiệp.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D17_K2",
+        articleId: dn_art17.id,
+        clauseNumber: 2,
+        content: "Điều lệ công ty.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D17_K3",
+        articleId: dn_art17.id,
+        clauseNumber: 3,
+        content: "Danh sách thành viên đối với công ty trách nhiệm hữu hạn, danh sách cổ đông sáng lập đối với công ty cổ phần, danh sách thành viên hợp danh đối với công ty hợp danh.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D17_K4",
+        articleId: dn_art17.id,
+        clauseNumber: 4,
+        content: "Bản sao các giấy tờ sau đây: giấy tờ pháp lý của cá nhân đối với người đại diện theo pháp luật của doanh nghiệp; giấy tờ pháp lý của cá nhân đối với thành viên công ty, cổ đông sáng lập, cổ đông là nhà đầu tư nước ngoài là cá nhân; giấy tờ pháp lý của tổ chức đối với thành viên, cổ đông sáng lập, cổ đông là nhà đầu tư nước ngoài là tổ chức; giấy tờ pháp lý của cá nhân đối với người đại diện theo ủy quyền và văn bản cử người đại diện theo ủy quyền.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D17_K5",
+        articleId: dn_art17.id,
+        clauseNumber: 5,
+        content: "Đối với doanh nghiệp được thành lập trên cơ sở chuyển đổi, hồ sơ đăng ký doanh nghiệp bao gồm các giấy tờ quy định tại các khoản 1, 2, 3 và 4 Điều này và bản sao quyết định chuyển đổi hoặc bản sao hợp đồng chuyển nhượng hoặc giấy tờ khác chứng minh việc chuyển đổi.",
+      },
+    ],
+  });
+
+  // ---- CHAPTER V: LLC (Điều 46, 47, 50) ----
+
+  const dn_art46 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D46",
+      documentId: enterpriseLaw.id,
+      articleNumber: 46,
+      title: "Công ty trách nhiệm hữu hạn hai thành viên trở lên",
+      content: "Công ty trách nhiệm hữu hạn hai thành viên trở lên là doanh nghiệp có đặc điểm sau đây:",
+      chapter: "Chương III",
+    },
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D46_K1",
+        articleId: dn_art46.id,
+        clauseNumber: 1,
+        content: "Thành viên có thể là tổ chức, cá nhân; số lượng thành viên không vượt quá 50.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D46_K2",
+        articleId: dn_art46.id,
+        clauseNumber: 2,
+        content: "Thành viên chịu trách nhiệm về các khoản nợ và nghĩa vụ tài sản khác của doanh nghiệp trong phạm vi số vốn đã góp vào doanh nghiệp, trừ trường hợp quy định tại khoản 4 Điều 47 của Luật này.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D46_K3",
+        articleId: dn_art46.id,
+        clauseNumber: 3,
+        content: "Phần vốn góp của thành viên chỉ được chuyển nhượng theo quy định tại các điều 51, 52 và 53 của Luật này.",
+      },
+    ],
+  });
+
+  const dn_art47 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D47",
+      documentId: enterpriseLaw.id,
+      articleNumber: 47,
+      title: "Thực hiện góp vốn thành lập công ty và cấp giấy chứng nhận phần vốn góp",
+      content: "Vốn điều lệ của công ty trách nhiệm hữu hạn hai thành viên trở lên khi đăng ký thành lập doanh nghiệp là tổng giá trị phần vốn góp của các thành viên cam kết góp và ghi trong Điều lệ công ty.",
+      chapter: "Chương III",
+    },
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D47_K1",
+        articleId: dn_art47.id,
+        clauseNumber: 1,
+        content: "Vốn điều lệ của công ty trách nhiệm hữu hạn hai thành viên trở lên khi đăng ký thành lập doanh nghiệp là tổng giá trị phần vốn góp của các thành viên cam kết góp và ghi trong Điều lệ công ty.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D47_K2",
+        articleId: dn_art47.id,
+        clauseNumber: 2,
+        content: "Thành viên phải góp vốn cho công ty đủ và đúng loại tài sản đã cam kết khi đăng ký thành lập doanh nghiệp trong thời hạn 90 ngày kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp, không kể thời gian vận chuyển, nhập khẩu tài sản góp vốn, thực hiện thủ tục hành chính để chuyển quyền sở hữu tài sản. Trong thời hạn này, thành viên có các quyền và nghĩa vụ tương ứng với tỷ lệ phần vốn góp đã cam kết.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D47_K3",
+        articleId: dn_art47.id,
+        clauseNumber: 3,
+        content: "Trường hợp có thành viên chưa góp vốn hoặc chưa góp đủ số vốn đã cam kết, công ty phải đăng ký thay đổi vốn điều lệ, tỷ lệ phần vốn góp của các thành viên bằng số vốn đã góp trong thời hạn 30 ngày kể từ ngày cuối cùng phải góp đủ phần vốn góp theo quy định tại khoản 2 Điều này.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D47_K4",
+        articleId: dn_art47.id,
+        clauseNumber: 4,
+        content: "Trường hợp có thành viên chưa góp vốn hoặc chưa góp đủ số vốn đã cam kết, thành viên đó phải chịu trách nhiệm tương ứng với tỷ lệ phần vốn góp đã cam kết đối với các nghĩa vụ tài chính của công ty phát sinh trong thời gian trước ngày công ty đăng ký thay đổi vốn điều lệ và tỷ lệ phần vốn góp của thành viên.",
+      },
+    ],
+  });
+
+  // ---- CHAPTER IV: JSC (Điều 111) ----
+
+  const dn_art111 = await prisma.article.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D111",
+      documentId: enterpriseLaw.id,
+      articleNumber: 111,
+      title: "Công ty cổ phần",
+      content: "Công ty cổ phần là doanh nghiệp có các đặc điểm sau đây:",
+      chapter: "Chương V",
+    },
+  });
+
+  const dn_c111_1 = await prisma.clause.create({
+    data: {
+      canonicalId: "VN_LDN_2020_D111_K1",
+      articleId: dn_art111.id,
+      clauseNumber: 1,
+      content: "Công ty cổ phần là doanh nghiệp, trong đó:",
+    },
+  });
+
+  await prisma.point.createMany({
+    data: [
+      { canonicalId: "VN_LDN_2020_D111_K1_A", clauseId: dn_c111_1.id, pointLetter: "a", content: "Vốn điều lệ được chia thành nhiều phần bằng nhau gọi là cổ phần;" },
+      { canonicalId: "VN_LDN_2020_D111_K1_B", clauseId: dn_c111_1.id, pointLetter: "b", content: "Cổ đông có thể là tổ chức, cá nhân; số lượng cổ đông tối thiểu là 03 và không hạn chế số lượng tối đa;" },
+      { canonicalId: "VN_LDN_2020_D111_K1_C", clauseId: dn_c111_1.id, pointLetter: "c", content: "Cổ đông chỉ chịu trách nhiệm về các khoản nợ và nghĩa vụ tài sản khác của doanh nghiệp trong phạm vi số vốn đã góp vào doanh nghiệp;" },
+      { canonicalId: "VN_LDN_2020_D111_K1_D", clauseId: dn_c111_1.id, pointLetter: "d", content: "Cổ đông có quyền tự do chuyển nhượng cổ phần của mình cho người khác, trừ trường hợp quy định tại khoản 3 Điều 120 và khoản 1 Điều 127 của Luật này." },
+    ],
+  });
+
+  await prisma.clause.createMany({
+    data: [
+      {
+        canonicalId: "VN_LDN_2020_D111_K2",
+        articleId: dn_art111.id,
+        clauseNumber: 2,
+        content: "Công ty cổ phần có tư cách pháp nhân kể từ ngày được cấp Giấy chứng nhận đăng ký doanh nghiệp.",
+      },
+      {
+        canonicalId: "VN_LDN_2020_D111_K3",
+        articleId: dn_art111.id,
+        clauseNumber: 3,
+        content: "Công ty cổ phần có quyền phát hành cổ phần, trái phiếu và các loại chứng khoán khác của công ty.",
+      },
+    ],
+  });
+
+  // ================================================================
   // RELATIONSHIPS
   // ================================================================
   await prisma.legalRelationship.createMany({
@@ -793,6 +1303,11 @@ async function main() {
       // Cross-document relationships
       { sourceType: "document", sourceCanonicalId: "VN_BLDS_2015", targetType: "document", targetCanonicalId: "VN_LLD_2019", relationshipType: "related_to", description: "BLDS quy định nguyên tắc chung về hợp đồng, BLLĐ quy định hợp đồng lao động cụ thể" },
       { sourceType: "article", sourceCanonicalId: "VN_BLDS_2015_D385", targetType: "article", targetCanonicalId: "VN_LLD_2019_D34", relationshipType: "related_to", description: "Khái niệm hợp đồng (BLDS Đ.385) liên quan đến chấm dứt HĐLĐ (BLLĐ Đ.34)" },
+      // Enterprise Law relationships
+      { sourceType: "article", sourceCanonicalId: "VN_LDN_2020_D7", targetType: "article", targetCanonicalId: "VN_LDN_2020_D8", relationshipType: "related_to", description: "Quyền (Đ.7) và nghĩa vụ (Đ.8) của doanh nghiệp" },
+      { sourceType: "article", sourceCanonicalId: "VN_LDN_2020_D46", targetType: "article", targetCanonicalId: "VN_LDN_2020_D47", relationshipType: "related_to", description: "Đặc điểm (Đ.46) và thực hiện góp vốn (Đ.47) công ty TNHH" },
+      { sourceType: "article", sourceCanonicalId: "VN_LDN_2020_D8", targetType: "article", targetCanonicalId: "VN_LLD_2019_D6", relationshipType: "references", description: "Nghĩa vụ DN bảo đảm quyền NLĐ (LDN Đ.8) tham chiếu nghĩa vụ NSDLĐ (BLLĐ Đ.6)" },
+      { sourceType: "article", sourceCanonicalId: "VN_LDN_2020_D5", targetType: "article", targetCanonicalId: "VN_BLDS_2015_D158", relationshipType: "related_to", description: "Bảo đảm quyền sở hữu tài sản DN (LDN Đ.5) liên quan quyền sở hữu (BLDS Đ.158)" },
     ],
   });
 
@@ -810,6 +1325,10 @@ async function main() {
       { entityType: "document", entityCanonicalId: "VN_BLDS_2015", key: "total_articles", value: "689" },
       { entityType: "document", entityCanonicalId: "VN_BLDS_2015", key: "total_chapters", value: "6 phần, 27 chương" },
       { entityType: "article", entityCanonicalId: "VN_BLDS_2015_D385", key: "keywords", value: "hợp đồng, thỏa thuận, quyền, nghĩa vụ, dân sự" },
+      { entityType: "document", entityCanonicalId: "VN_LDN_2020", key: "gazette_number", value: "Công báo số 757-758" },
+      { entityType: "document", entityCanonicalId: "VN_LDN_2020", key: "total_articles", value: "218" },
+      { entityType: "document", entityCanonicalId: "VN_LDN_2020", key: "total_chapters", value: "10" },
+      { entityType: "article", entityCanonicalId: "VN_LDN_2020_D111", key: "keywords", value: "công ty cổ phần, cổ phần, cổ đông, vốn điều lệ, chứng khoán" },
     ],
   });
 
