@@ -23,12 +23,11 @@ test.describe("Homepage", () => {
     expect(data.potentialAction["@type"]).toBe("SearchAction");
   });
 
-  test("sidebar links to /topic/ pages", async ({ page }) => {
+  test("has filter bar with domain dropdown", async ({ page }) => {
     await page.goto("/");
-    // Sidebar domain links point to /topic/ routes
-    const topicLink = page.locator('aside a[href^="/topic/"]').first();
-    const href = await topicLink.getAttribute("href");
-    expect(href).toMatch(/^\/topic\//);
+    // FilterBar replaced sidebar domain links
+    const filterBar = page.locator("text=Lĩnh vực").first();
+    await expect(filterBar).toBeVisible();
   });
 });
 

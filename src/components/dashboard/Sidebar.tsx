@@ -9,20 +9,8 @@ const navItems = [
   { label: "Sắp hiệu lực", href: "/?filter=upcoming", icon: "clock" },
   { label: "Tác động cao", href: "/?filter=high-impact", icon: "alert" },
   { label: "Dự thảo", href: "/?filter=draft", icon: "edit" },
-  { label: "Theo lĩnh vực", href: "/?filter=by-domain", icon: "folder" },
   { label: "Báo cáo", href: "/?filter=reports", icon: "chart" },
   { label: "API", href: "/api-docs", icon: "code" },
-];
-
-const domains = [
-  { name: "Đầu tư & Doanh nghiệp", slug: "corporate-law" },
-  { name: "Lao động & Nhân sự", slug: "labor-hr" },
-  { name: "Thuế", slug: "tax" },
-  { name: "Dân sự", slug: "civil-law" },
-  { name: "SHTT", slug: "intellectual-property" },
-  { name: "Môi trường – PCCC", slug: "environment" },
-  { name: "Bảo vệ dữ liệu", slug: "data-protection" },
-  { name: "Hình sự", slug: "criminal-law" },
 ];
 
 function NavIcon({ type }: { type: string }) {
@@ -56,12 +44,6 @@ function NavIcon({ type }: { type: string }) {
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-        </svg>
-      );
-    case "folder":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
         </svg>
       );
     case "chart":
@@ -124,31 +106,6 @@ export default function Sidebar() {
             );
           })}
 
-          {/* Domains separator */}
-          <div className="pt-5 pb-2 px-3">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-600">
-              Lĩnh vực pháp luật
-            </span>
-          </div>
-
-          {domains.map((d) => {
-            const href = `/topic/${d.slug}`;
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={d.slug}
-                href={href}
-                className={`flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] transition-colors ${
-                  isActive
-                    ? "bg-gray-800 text-white font-medium"
-                    : "text-gray-400 hover:bg-gray-800/60 hover:text-gray-200"
-                }`}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />
-                {d.name}
-              </Link>
-            );
-          })}
         </nav>
 
         {/* Footer */}
