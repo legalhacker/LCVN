@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage", () => {
-  test("renders hero and topic grid", async ({ page }) => {
+  test("renders dashboard and stats", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Research Vietnamese Law");
+    await expect(page.locator("h1")).toContainText("Regulatory Intelligence Dashboard");
     await expect(page.locator('nav[aria-label="Legal topics"]')).toBeVisible();
   });
 
@@ -23,10 +23,11 @@ test.describe("Homepage", () => {
     expect(data.potentialAction["@type"]).toBe("SearchAction");
   });
 
-  test("topic cards link to /topic/ pages", async ({ page }) => {
+  test("sidebar links to /topic/ pages", async ({ page }) => {
     await page.goto("/");
-    const firstTopicLink = page.locator('nav[aria-label="Legal topics"] a').first();
-    const href = await firstTopicLink.getAttribute("href");
+    // Sidebar domain links point to /topic/ routes
+    const topicLink = page.locator('aside a[href^="/topic/"]').first();
+    const href = await topicLink.getAttribute("href");
     expect(href).toMatch(/^\/topic\//);
   });
 });
@@ -35,7 +36,7 @@ test.describe("Topic page", () => {
   test("lists documents for a topic", async ({ page }) => {
     await page.goto("/topic/labor-hr");
     await expect(page.locator("h1")).toContainText("Labor & HR");
-    await expect(page.locator('a[href="/document/labor-code-2019"]')).toBeVisible();
+    await expect(page.locator('main a[href="/document/labor-code-2019"]')).toBeVisible();
   });
 
   test("breadcrumb links back to home", async ({ page }) => {
@@ -120,8 +121,8 @@ test.describe("Article source page", () => {
 
   test("info panel toggles on click", async ({ page }) => {
     await page.goto("/luat/bo-luat-lao-dong/2019/dieu-35");
-    // Panel should be hidden initially
-    const panel = page.locator("aside");
+    // Article info panel should be hidden initially (off-screen right)
+    const panel = page.locator('aside.fixed.right-0');
     await expect(panel).not.toBeInViewport();
     // Click toggle
     await page.locator('label[for="info-toggle"]').first().click();

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Header from "@/components/shared/Header";
-import Footer from "@/components/shared/Footer";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
@@ -27,10 +26,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
-      <body className="min-h-screen flex flex-col bg-white text-gray-900 antialiased">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body className="bg-gray-100 text-gray-900 antialiased">
+        <DashboardLayout>{children}</DashboardLayout>
       </body>
     </html>
   );

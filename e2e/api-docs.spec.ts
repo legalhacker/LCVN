@@ -40,9 +40,9 @@ test.describe("API Documentation page", () => {
     await expect(ogTitle).toHaveAttribute("content", /API Documentation/);
   });
 
-  test("footer links to API docs", async ({ page }) => {
+  test("sidebar links to API docs", async ({ page }) => {
     await page.goto("/");
-    const apiLink = page.locator("footer a", { hasText: "API" });
+    const apiLink = page.locator("aside a", { hasText: "API" });
     await expect(apiLink).toHaveAttribute("href", "/api-docs");
   });
 });
