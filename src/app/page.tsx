@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import RegulatoryFeed from "@/components/dashboard/RegulatoryFeed";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
 
@@ -71,65 +71,8 @@ export default function HomePage() {
       />
 
       <div className="p-4 lg:p-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-2 pb-4 mb-1">
-            <span className="text-base">📰</span>
-            <span className="text-sm font-semibold text-gray-500">Những thay đổi mới nhất</span>
-          </div>
-
-          {FEED_ITEMS.map((item, idx) => (
-            <article
-              key={item.slug}
-              className={`py-5 ${idx !== FEED_ITEMS.length - 1 ? "border-b border-gray-100" : ""}`}
-            >
-              {/* Title */}
-              <h2 className="text-[15px] font-semibold text-gray-900 leading-snug">
-                <span className="mr-1">⚡</span>{item.title}
-              </h2>
-
-              {/* Summary */}
-              <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                {item.summary}
-              </p>
-
-              {/* Meta */}
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-                <span>
-                  <span className="text-gray-500">Căn cứ:</span> {item.legalBasis}
-                </span>
-                <span>
-                  <span className="text-gray-500">Nguồn:</span> {item.sourceDocument}
-                </span>
-                {item.effectiveDate && (
-                  <span>
-                    <span className="text-gray-500">Hiệu lực:</span> {item.effectiveDate}
-                  </span>
-                )}
-              </div>
-
-              {/* Tags */}
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {item.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              {/* CTA */}
-              <div className="mt-3">
-                <Link
-                  href={`/thay-doi/${item.slug}`}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  Xem phân tích chi tiết &rarr;
-                </Link>
-              </div>
-            </article>
-          ))}
+        <div className="max-w-3xl mx-auto">
+          <RegulatoryFeed items={FEED_ITEMS} />
         </div>
       </div>
     </>
