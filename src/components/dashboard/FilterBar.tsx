@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 const DOMAINS = [
   { label: "Đầu tư & Doanh nghiệp", value: "corporate-law" },
@@ -173,7 +174,13 @@ function SingleSelect({
   );
 }
 
-export default function FilterBar() {
+export default function FilterBar({
+  showSearchInput = true,
+  basePath = "/",
+}: {
+  showSearchInput?: boolean;
+  basePath?: string;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -208,7 +215,7 @@ export default function FilterBar() {
     if (s) params.set("q", s);
 
     const qs = params.toString();
-    router.push(qs ? `/?${qs}` : "/");
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   };
 
   return (
@@ -243,27 +250,45 @@ export default function FilterBar() {
         }}
       />
 
-      <div className="relative flex-1 min-w-[180px]">
-        <svg
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+      {showSearchInput ? (
+        <div className="relative flex-1 min-w-[180px]">
+          <svg
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyFilters(undefined, undefined, undefined, search);
+            }}
+            placeholder="Tìm kiếm văn bản..."
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-colors"
+          />
+        </div>
+      ) : (
+        <Link
+          href="/search"
+          className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-colors"
+          aria-label="Tìm kiếm"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-        </svg>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") applyFilters(undefined, undefined, undefined, search);
-          }}
-          placeholder="Tìm kiếm văn bản..."
-          className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-3 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-300 transition-colors"
-        />
-      </div>
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+        </Link>
+      )}
     </div>
   );
 }

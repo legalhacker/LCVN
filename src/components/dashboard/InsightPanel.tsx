@@ -24,7 +24,7 @@ export default function InsightPanel() {
         {/* AI Insight */}
         <section>
           <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
-            AI Insight
+            Insight
           </h3>
           <div className="rounded-lg bg-white border border-gray-200 p-4">
             <p className="text-xs text-gray-500 leading-relaxed">

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Sidebar from "./Sidebar";
 import DashboardHeader from "./DashboardHeader";
 import InsightPanel from "./InsightPanel";
@@ -10,7 +11,9 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <Sidebar />
+      <Suspense>
+        <Sidebar />
+      </Suspense>
 
       {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0">

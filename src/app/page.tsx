@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import FilterBar from "@/components/dashboard/FilterBar";
+import DocumentListTable from "@/components/dashboard/DocumentListTable";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
 
@@ -45,13 +46,77 @@ const SLUG_TO_DOC_PAGE: Record<string, string> = {
   "luat-doanh-nghiep": "enterprise-law-2020",
 };
 
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  amended_by: "Sửa đổi bởi",
+  replaces: "Thay thế",
+  related_to: "Liên quan đến",
+  references: "Tham chiếu",
+  implements: "Hướng dẫn thi hành",
+};
+
 export default async function HomePage() {
   const documents = await prisma.legalDocument.findMany({
     orderBy: { effectiveDate: "desc" },
   });
 
-  const totalArticles = await prisma.article.count();
-  const activeCount = documents.filter((d) => d.status === "active").length;
+  const relationships = await prisma.legalRelationship.findMany({
+    orderBy: { effectiveDate: "desc" },
+    take: 10,
+  });
+
+  // Derive change events from relationships, falling back to documents
+  type ChangeEvent = {
+    id: string;
+    title: string;
+    field: string;
+    effectiveDate: string;
+    summary: string;
+    href: string;
+  };
+
+  const events: ChangeEvent[] = [];
+
+  if (relationships.length > 0) {
+    for (const rel of relationships) {
+      // Find the source document to get context
+      const sourceDoc = documents.find(
+        (d) => d.canonicalId === rel.sourceCanonicalId,
+      );
+      const targetDoc = documents.find(
+        (d) => d.canonicalId === rel.targetCanonicalId,
+      );
+
+      const relLabel = RELATIONSHIP_LABELS[rel.relationshipType] || rel.relationshipType;
+      const title = rel.description || `${relLabel}: ${sourceDoc?.title || rel.sourceCanonicalId}`;
+      const field = sourceDoc ? (DOMAIN_MAP[sourceDoc.slug] || "Pháp luật") : "Pháp luật";
+      const effectiveDate = rel.effectiveDate
+        ? rel.effectiveDate.toISOString().split("T")[0]
+        : sourceDoc?.effectiveDate.toISOString().split("T")[0] || "";
+      const docPage = sourceDoc ? SLUG_TO_DOC_PAGE[sourceDoc.slug] : null;
+      const href = docPage
+        ? `/document/${docPage}`
+        : targetDoc
+          ? `/search?q=${encodeURIComponent(targetDoc.title)}`
+          : "/search";
+
+      events.push({ id: rel.id, title, field, effectiveDate, summary: `${relLabel}`, href });
+    }
+  }
+
+  // Fall back to recent documents if no relationships
+  if (events.length === 0) {
+    for (const doc of documents.slice(0, 6)) {
+      const docPage = SLUG_TO_DOC_PAGE[doc.slug];
+      events.push({
+        id: doc.id,
+        title: doc.title,
+        field: DOMAIN_MAP[doc.slug] || "Pháp luật",
+        effectiveDate: doc.effectiveDate.toISOString().split("T")[0],
+        summary: `${doc.documentNumber} — ${doc.issuingBody}`,
+        href: docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`,
+      });
+    }
+  }
 
   return (
     <>
@@ -64,69 +129,18 @@ export default async function HomePage() {
         {/* Page title */}
         <div>
           <h1 className="text-lg font-semibold text-gray-900">
-            Regulatory Intelligence Dashboard
+            Regulatory Intelligence
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Theo dõi quy định pháp luật Việt Nam
           </p>
         </div>
 
-        {/* Stats cards */}
-        <nav aria-label="Legal topics" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
-              Tổng cập nhật
-            </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {totalArticles}
-            </p>
-            <p className="text-[11px] text-gray-400 mt-1">
-              điều khoản trong hệ thống
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
-              Hiện hành
-            </p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600">
-              {activeCount}
-            </p>
-            <p className="text-[11px] text-gray-400 mt-1">
-              văn bản đang có hiệu lực
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
-              Văn bản
-            </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {documents.length}
-            </p>
-            <p className="text-[11px] text-gray-400 mt-1">
-              văn bản pháp luật
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">
-              Lĩnh vực
-            </p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">
-              {new Set(Object.values(DOMAIN_MAP)).size}
-            </p>
-            <p className="text-[11px] text-gray-400 mt-1">
-              lĩnh vực pháp luật
-            </p>
-          </div>
-        </nav>
-
-        {/* Regulation table */}
+        {/* Section 0 — Văn bản mới có hiệu lực */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700">
-              Văn bản pháp luật
+              Văn bản mới có hiệu lực
             </h2>
             <Link
               href="/search"
@@ -136,85 +150,47 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* Filter bar */}
           <div className="mb-3">
-            <FilterBar />
+            <FilterBar showSearchInput={false} />
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/80">
-                    <th className="w-10 py-2.5 px-4">
-                      <input
-                        type="checkbox"
-                        disabled
-                        className="h-3.5 w-3.5 rounded border-gray-300"
-                      />
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                      Văn bản
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">
-                      Lĩnh vực
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">
-                      Cơ quan ban hành
-                    </th>
-                    <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">
-                      Ngày hiệu lực
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((doc) => {
-                    const docPage = SLUG_TO_DOC_PAGE[doc.slug];
-                    return (
-                      <tr
-                        key={doc.id}
-                        className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors"
-                      >
-                        <td className="w-10 py-3 px-4">
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-gray-800 focus:ring-gray-300"
-                          />
-                        </td>
-                        <td className="py-3 px-4">
-                          <Link
-                            href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
-                            className="group"
-                          >
-                            <p className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
-                              {doc.title}
-                            </p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {doc.documentNumber}
-                            </p>
-                          </Link>
-                        </td>
-                        <td className="py-3 px-4 hidden sm:table-cell">
-                          <span className="text-xs text-gray-500">
-                            {DOMAIN_MAP[doc.slug] || "Khác"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 hidden md:table-cell">
-                          <span className="text-xs text-gray-500">
-                            {doc.issuingBody}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 hidden lg:table-cell">
-                          <span className="text-xs text-gray-500">
-                            {doc.effectiveDate.toISOString().split("T")[0]}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <DocumentListTable
+            documents={documents}
+            slugToDocPage={SLUG_TO_DOC_PAGE}
+          />
+        </section>
+
+        {/* Section 1 — Sự kiện thay đổi pháp luật */}
+        <section>
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            Sự kiện thay đổi pháp luật
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {events.map((event) => (
+              <Link
+                key={event.id}
+                href={event.href}
+                className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-medium text-gray-900 leading-snug">
+                    {event.title}
+                  </h3>
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                    {event.field}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  {event.summary}
+                </p>
+                {event.effectiveDate && (
+                  <p className="mt-1 text-[10px] text-gray-400">
+                    Hiệu lực: {event.effectiveDate}
+                  </p>
+                )}
+              </Link>
+            ))}
           </div>
         </section>
       </div>

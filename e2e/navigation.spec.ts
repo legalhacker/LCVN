@@ -1,10 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage", () => {
-  test("renders dashboard and stats", async ({ page }) => {
+  test("renders regulatory intelligence page with sections", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Regulatory Intelligence Dashboard");
-    await expect(page.locator('nav[aria-label="Legal topics"]')).toBeVisible();
+    await expect(page.locator("h1")).toContainText("Regulatory Intelligence");
+    await expect(page.locator("text=Văn bản mới có hiệu lực")).toBeVisible();
+    await expect(page.locator("text=Sự kiện thay đổi pháp luật")).toBeVisible();
   });
 
   test("has correct meta tags", async ({ page }) => {
@@ -25,7 +26,41 @@ test.describe("Homepage", () => {
 
   test("has filter bar with domain dropdown", async ({ page }) => {
     await page.goto("/");
-    // FilterBar replaced sidebar domain links
+    const filterBar = page.locator("text=Lĩnh vực").first();
+    await expect(filterBar).toBeVisible();
+  });
+});
+
+test.describe("Dữ liệu pháp luật page", () => {
+  test("renders legal field grid", async ({ page }) => {
+    await page.goto("/du-lieu-phap-luat");
+    await expect(page.locator("h1")).toContainText("Dữ liệu pháp luật");
+    await expect(page.locator("text=Đầu tư & Doanh nghiệp")).toBeVisible();
+    await expect(page.locator("text=Lao động & Nhân sự")).toBeVisible();
+    await expect(page.locator("text=Thuế")).toBeVisible();
+  });
+
+  test("has topic links", async ({ page }) => {
+    await page.goto("/du-lieu-phap-luat");
+    await expect(page.locator('a[href="/topic/corporate-law"]')).toBeVisible();
+    await expect(page.locator('a[href="/topic/labor-hr"]')).toBeVisible();
+    await expect(page.locator('a[href="/topic/tax"]')).toBeVisible();
+  });
+
+  test("has search bar", async ({ page }) => {
+    await page.goto("/du-lieu-phap-luat");
+    await expect(page.getByRole("textbox", { name: "Tìm kiếm văn bản pháp luật..." })).toBeVisible();
+  });
+});
+
+test.describe("Văn bản sắp có hiệu lực page", () => {
+  test("renders page with heading", async ({ page }) => {
+    await page.goto("/van-ban-sap-co-hieu-luc");
+    await expect(page.locator("h1")).toContainText("Văn bản sắp có hiệu lực");
+  });
+
+  test("has filter bar", async ({ page }) => {
+    await page.goto("/van-ban-sap-co-hieu-luc");
     const filterBar = page.locator("text=Lĩnh vực").first();
     await expect(filterBar).toBeVisible();
   });
