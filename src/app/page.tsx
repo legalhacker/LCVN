@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import FilterBar from "@/components/dashboard/FilterBar";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "LCVN - Legal Compliance in Vietnam",
@@ -33,90 +29,40 @@ const jsonLd = {
   },
 };
 
-const DOMAIN_MAP: Record<string, string> = {
-  "bo-luat-lao-dong": "Lao động & Nhân sự",
-  "bo-luat-dan-su": "Dân sự",
-  "luat-doanh-nghiep": "Doanh nghiệp",
-};
+interface FeedItem {
+  id: string;
+  title: string;
+  summary: string;
+  legalBasis: string;
+  sourceDocument: string;
+  tags: string[];
+  href: string;
+}
 
-const SLUG_TO_DOC_PAGE: Record<string, string> = {
-  "bo-luat-lao-dong": "labor-code-2019",
-  "bo-luat-dan-su": "civil-code-2015",
-  "luat-doanh-nghiep": "enterprise-law-2020",
-};
+const FEED_ITEMS: FeedItem[] = [
+  {
+    id: "shtt-ai-ownership",
+    title: "Lần đầu tiên luật hóa quyền sở hữu trí tuệ gắn với trí tuệ nhân tạo (AI)",
+    summary:
+      "Luật SHTT sửa đổi 2025 lần đầu tiên quy định việc xác lập quyền sở hữu trí tuệ đối với đối tượng được tạo ra có sử dụng hệ thống trí tuệ nhân tạo. Chính phủ được giao quy định chi tiết về phát sinh quyền, xác lập quyền và chủ thể quyền trong các trường hợp có AI tham gia.",
+    legalBasis: "Khoản 5 Điều 6 (bổ sung)",
+    sourceDocument: "Luật Sở hữu trí tuệ sửa đổi 2025 – số 131/2025/QH15",
+    tags: ["AI", "Sở hữu trí tuệ", "Luật mới 2025"],
+    href: "/search?q=s%E1%BB%9F+h%E1%BB%AFu+tr%C3%AD+tu%E1%BB%87+AI",
+  },
+  {
+    id: "shtt-ai-training-data",
+    title: "Cho phép sử dụng dữ liệu đã công bố để huấn luyện hệ thống AI",
+    summary:
+      "Pháp luật lần đầu cho phép sử dụng hợp pháp văn bản và dữ liệu về đối tượng quyền sở hữu trí tuệ đã được công bố để nghiên cứu, thử nghiệm và huấn luyện hệ thống trí tuệ nhân tạo, với điều kiện không ảnh hưởng bất hợp lý đến quyền của chủ sở hữu.",
+    legalBasis: "Khoản 5 Điều 7 (mới)",
+    sourceDocument: "Luật Sở hữu trí tuệ sửa đổi 2025 – số 131/2025/QH15",
+    tags: ["AI", "Dữ liệu", "Huấn luyện AI", "Bản quyền"],
+    href: "/search?q=hu%E1%BA%A5n+luy%E1%BB%87n+AI+d%E1%BB%AF+li%E1%BB%87u",
+  },
+];
 
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  amended_by: "Sửa đổi bởi",
-  replaces: "Thay thế",
-  related_to: "Liên quan đến",
-  references: "Tham chiếu",
-  implements: "Hướng dẫn thi hành",
-};
-
-export default async function HomePage() {
-  const documents = await prisma.legalDocument.findMany({
-    orderBy: { effectiveDate: "desc" },
-  });
-
-  const relationships = await prisma.legalRelationship.findMany({
-    orderBy: { effectiveDate: "desc" },
-    take: 10,
-  });
-
-  // Derive change events from relationships, falling back to documents
-  type ChangeEvent = {
-    id: string;
-    title: string;
-    field: string;
-    effectiveDate: string;
-    summary: string;
-    href: string;
-  };
-
-  const events: ChangeEvent[] = [];
-
-  if (relationships.length > 0) {
-    for (const rel of relationships) {
-      // Find the source document to get context
-      const sourceDoc = documents.find(
-        (d) => d.canonicalId === rel.sourceCanonicalId,
-      );
-      const targetDoc = documents.find(
-        (d) => d.canonicalId === rel.targetCanonicalId,
-      );
-
-      const relLabel = RELATIONSHIP_LABELS[rel.relationshipType] || rel.relationshipType;
-      const title = rel.description || `${relLabel}: ${sourceDoc?.title || rel.sourceCanonicalId}`;
-      const field = sourceDoc ? (DOMAIN_MAP[sourceDoc.slug] || "Pháp luật") : "Pháp luật";
-      const effectiveDate = rel.effectiveDate
-        ? rel.effectiveDate.toISOString().split("T")[0]
-        : sourceDoc?.effectiveDate.toISOString().split("T")[0] || "";
-      const docPage = sourceDoc ? SLUG_TO_DOC_PAGE[sourceDoc.slug] : null;
-      const href = docPage
-        ? `/document/${docPage}`
-        : targetDoc
-          ? `/search?q=${encodeURIComponent(targetDoc.title)}`
-          : "/search";
-
-      events.push({ id: rel.id, title, field, effectiveDate, summary: `${relLabel}`, href });
-    }
-  }
-
-  // Fall back to recent documents if no relationships
-  if (events.length === 0) {
-    for (const doc of documents.slice(0, 6)) {
-      const docPage = SLUG_TO_DOC_PAGE[doc.slug];
-      events.push({
-        id: doc.id,
-        title: doc.title,
-        field: DOMAIN_MAP[doc.slug] || "Pháp luật",
-        effectiveDate: doc.effectiveDate.toISOString().split("T")[0],
-        summary: `${doc.documentNumber} — ${doc.issuingBody}`,
-        href: docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`,
-      });
-    }
-  }
-
+export default function HomePage() {
   return (
     <>
       <script
@@ -124,37 +70,64 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="p-4 lg:p-6 space-y-5">
-        <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
-          Quy định mới nhất
-        </h1>
+      <div className="p-4 lg:p-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-2 pb-4 mb-1">
+            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-1.5 3h1.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+            </svg>
+            <span className="text-sm font-semibold text-gray-500">Những thay đổi mới nhất</span>
+          </div>
 
-        <FilterBar showSearchInput={false} showAuthorityFilter={false} />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {events.map((event) => (
-            <Link
-              key={event.id}
-              href={event.href}
-              className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+          {FEED_ITEMS.map((item, idx) => (
+            <article
+              key={item.id}
+              className={`py-6 ${idx !== FEED_ITEMS.length - 1 ? "border-b border-gray-100" : ""}`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-sm font-medium text-gray-900 leading-snug">
-                  {event.title}
-                </h2>
-                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                  {event.field}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-                {event.summary}
+              {/* Title */}
+              <h2 className="text-base font-semibold text-gray-900 leading-snug">
+                {item.title}
+              </h2>
+
+              {/* Summary */}
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                {item.summary}
               </p>
-              {event.effectiveDate && (
-                <p className="mt-1.5 text-[10px] text-gray-400">
-                  Hiệu lực: {event.effectiveDate}
+
+              {/* Legal basis + Source */}
+              <div className="mt-3 space-y-1 text-xs text-gray-500">
+                <p>
+                  <span className="font-medium text-gray-600">Căn cứ pháp lý:</span>{" "}
+                  {item.legalBasis}
                 </p>
-              )}
-            </Link>
+                <p>
+                  <span className="font-medium text-gray-600">Văn bản nguồn:</span>{" "}
+                  {item.sourceDocument}
+                </p>
+              </div>
+
+              {/* Tags */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {item.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* Action */}
+              <div className="mt-4">
+                <Link
+                  href={item.href}
+                  className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  Xem chi tiết &rarr;
+                </Link>
+              </div>
+            </article>
           ))}
         </div>
       </div>

@@ -1,9 +1,24 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage", () => {
-  test("renders homepage with latest regulations", async ({ page }) => {
+  test("renders regulatory feed items", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Quy định mới nhất");
+    const articles = page.locator("article");
+    await expect(articles).toHaveCount(2);
+    await expect(page.locator("text=Xem chi tiết").first()).toBeVisible();
+  });
+
+  test("feed items show legal basis and source document", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("text=Căn cứ pháp lý:").first()).toBeVisible();
+    await expect(page.locator("text=Văn bản nguồn:").first()).toBeVisible();
+    await expect(page.locator("text=Khoản 5 Điều 6 (bổ sung)")).toBeVisible();
+  });
+
+  test("feed items have topic tags", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("text=AI").first()).toBeVisible();
+    await expect(page.getByText("Sở hữu trí tuệ", { exact: true })).toBeVisible();
   });
 
   test("has correct meta tags", async ({ page }) => {
@@ -20,12 +35,6 @@ test.describe("Homepage", () => {
     const data = JSON.parse(content!);
     expect(data["@type"]).toBe("WebSite");
     expect(data.potentialAction["@type"]).toBe("SearchAction");
-  });
-
-  test("has filter bar with domain dropdown", async ({ page }) => {
-    await page.goto("/");
-    const filterBar = page.locator("text=Lĩnh vực").first();
-    await expect(filterBar).toBeVisible();
   });
 });
 
