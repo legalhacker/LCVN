@@ -124,54 +124,39 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="p-4 lg:p-6 space-y-6">
-        {/* Page title */}
-        <div>
-          <h1 className="text-lg font-semibold text-gray-900">
-            Regulatory Intelligence
-          </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Theo dõi quy định pháp luật Việt Nam
-          </p>
-        </div>
+      <div className="p-4 lg:p-6 space-y-5">
+        <h1 className="text-xl font-semibold text-gray-900 tracking-tight">
+          Quy định mới nhất
+        </h1>
 
-        <div>
-          <FilterBar showSearchInput={false} showAuthorityFilter={false} />
-        </div>
+        <FilterBar showSearchInput={false} showAuthorityFilter={false} />
 
-        {/* Sự kiện thay đổi pháp luật */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">
-            Sự kiện thay đổi pháp luật
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {events.map((event) => (
-              <Link
-                key={event.id}
-                href={event.href}
-                className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-medium text-gray-900 leading-snug">
-                    {event.title}
-                  </h3>
-                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                    {event.field}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  {event.summary}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {events.map((event) => (
+            <Link
+              key={event.id}
+              href={event.href}
+              className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="text-sm font-medium text-gray-900 leading-snug">
+                  {event.title}
+                </h2>
+                <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                  {event.field}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+                {event.summary}
+              </p>
+              {event.effectiveDate && (
+                <p className="mt-1.5 text-[10px] text-gray-400">
+                  Hiệu lực: {event.effectiveDate}
                 </p>
-                {event.effectiveDate && (
-                  <p className="mt-1 text-[10px] text-gray-400">
-                    Hiệu lực: {event.effectiveDate}
-                  </p>
-                )}
-              </Link>
-            ))}
-          </div>
-        </section>
+              )}
+            </Link>
+          ))}
+        </div>
       </div>
     </>
   );

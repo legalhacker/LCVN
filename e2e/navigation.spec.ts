@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage", () => {
-  test("renders regulatory intelligence page with sections", async ({ page }) => {
+  test("renders homepage with latest regulations", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toContainText("Regulatory Intelligence");
-    await expect(page.locator("text=Sự kiện thay đổi pháp luật")).toBeVisible();
+    await expect(page.locator("h1")).toContainText("Quy định mới nhất");
   });
 
   test("has correct meta tags", async ({ page }) => {
