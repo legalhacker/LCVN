@@ -48,6 +48,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
+  // Published regulatory changes
+  const regulatoryChanges = await prisma.regulatoryChange.findMany({
+    where: { status: "published" },
+    select: { slug: true, updatedAt: true },
+  });
+
+  for (const change of regulatoryChanges) {
+    entries.push({
+      url: `${BASE_URL}/thay-doi/${change.slug}`,
+      lastModified: change.updatedAt,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    });
+  }
+
   // Article source pages from database
   const documents = await prisma.legalDocument.findMany({
     include: {

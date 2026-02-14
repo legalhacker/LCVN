@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import "./globals.css";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
@@ -27,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className="bg-gray-100 text-gray-900 antialiased">
-        <DashboardLayout>{children}</DashboardLayout>
+        {children}
       </body>
     </html>
   );

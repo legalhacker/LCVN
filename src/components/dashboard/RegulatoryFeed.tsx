@@ -13,7 +13,7 @@ interface FeedItem {
   tags: string[];
 }
 
-const FIELDS = [
+const DEFAULT_FIELDS = [
   "Đầu tư",
   "Doanh nghiệp",
   "Trí tuệ nhân tạo",
@@ -22,17 +22,8 @@ const FIELDS = [
   "Tài chính – ngân hàng",
 ];
 
-/** Map field label → tags it matches in feed items */
-const FIELD_TAG_MAP: Record<string, string[]> = {
-  "Đầu tư": ["Đầu tư"],
-  "Doanh nghiệp": ["Doanh nghiệp"],
-  "Trí tuệ nhân tạo": ["AI", "Huấn luyện AI"],
-  "Bảo vệ dữ liệu": ["Dữ liệu", "Bảo vệ dữ liệu"],
-  "Lao động": ["Lao động"],
-  "Tài chính – ngân hàng": ["Tài chính", "Ngân hàng"],
-};
-
-export default function RegulatoryFeed({ items }: { items: FeedItem[] }) {
+export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; fields?: string[] }) {
+  const FIELDS = fields && fields.length > 0 ? fields : DEFAULT_FIELDS;
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -71,8 +62,7 @@ export default function RegulatoryFeed({ items }: { items: FeedItem[] }) {
       ? items
       : items.filter((item) => {
           for (const f of appliedFields) {
-            const matchTags = FIELD_TAG_MAP[f] || [];
-            if (item.tags.some((t) => matchTags.includes(t))) return true;
+            if (item.tags.some((t) => t === f)) return true;
           }
           return false;
         });

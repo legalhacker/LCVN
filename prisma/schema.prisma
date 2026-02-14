@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  admin
+  editor
+}
+
+enum ChangeType {
+  amendment
+  addition
+  first_codification
+}
+
+enum ChangeStatus {
+  draft
+  published
+}
+
 enum DocumentType {
   luat
   nghi_dinh
@@ -35,6 +51,66 @@ enum RelationshipType {
   implements
 }
 
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.Text
+  name         String?  @db.VarChar(255)
+  role         UserRole @default(editor)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Field {
+  id                String                 @id @default(uuid()) @db.Uuid
+  name              String                 @db.VarChar(255)
+  slug              String                 @unique @db.VarChar(255)
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  regulatoryChanges RegulatoryChangeField[]
+
+  @@map("fields")
+}
+
+model RegulatoryChange {
+  id               String                 @id @default(uuid()) @db.Uuid
+  slug             String                 @unique @db.VarChar(255)
+  lawName          String                 @map("law_name") @db.Text
+  changeType       ChangeType             @map("change_type")
+  legalBasis       String                 @map("legal_basis") @db.Text
+  source           String                 @db.Text
+  effectiveDate    DateTime               @map("effective_date") @db.Date
+  headline         String                 @db.Text
+  summary          String                 @db.Text
+  practicalImpact  String[]               @map("practical_impact")
+  affectedParties  String[]               @map("affected_parties")
+  analysisSummary  String?                @map("analysis_summary") @db.Text
+  comparisonBefore String?                @map("comparison_before") @db.Text
+  comparisonAfter  String?                @map("comparison_after") @db.Text
+  timeline         String?                @db.Text
+  context          String?                @db.Text
+  status           ChangeStatus           @default(draft)
+  legalDocumentId  String?                @map("legal_document_id") @db.Uuid
+  legalDocument    LegalDocument?         @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
+  fields           RegulatoryChangeField[]
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  @@map("regulatory_changes")
+}
+
+model RegulatoryChangeField {
+  regulatoryChangeId String           @map("regulatory_change_id") @db.Uuid
+  fieldId            String           @map("field_id") @db.Uuid
+  regulatoryChange   RegulatoryChange @relation(fields: [regulatoryChangeId], references: [id], onDelete: Cascade)
+  field              Field            @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([regulatoryChangeId, fieldId])
+  @@map("regulatory_change_fields")
+}
+
 model LegalDocument {
   id             String         @id @default(uuid()) @db.Uuid
   canonicalId    String         @unique @map("canonical_id") @db.VarChar(100)
@@ -47,9 +123,10 @@ model LegalDocument {
   slug           String         @unique @db.VarChar(200)
   year           Int
   status         DocumentStatus @default(active)
-  articles       Article[]
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  articles          Article[]
+  regulatoryChanges RegulatoryChange[]
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
 
   @@map("legal_documents")
 }
