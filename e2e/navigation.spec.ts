@@ -1,23 +1,19 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Homepage", () => {
-  test("renders regulatory feed items", async ({ page }) => {
+  test("renders regulatory feed with law-prefixed titles", async ({ page }) => {
     await page.goto("/");
     const articles = page.locator("article");
     await expect(articles).toHaveCount(2);
-    await expect(page.locator("text=Xem chi tiết").first()).toBeVisible();
+    await expect(page.locator("text=[Luật SHTT]").first()).toBeVisible();
+    await expect(page.locator("text=Xem phân tích chi tiết").first()).toBeVisible();
   });
 
-  test("feed items show legal basis and source document", async ({ page }) => {
+  test("feed items show meta info and tags", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("text=Căn cứ pháp lý:").first()).toBeVisible();
-    await expect(page.locator("text=Văn bản nguồn:").first()).toBeVisible();
-    await expect(page.locator("text=Khoản 5 Điều 6 (bổ sung)")).toBeVisible();
-  });
-
-  test("feed items have topic tags", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator("text=AI").first()).toBeVisible();
+    await expect(page.locator("text=Căn cứ:").first()).toBeVisible();
+    await expect(page.locator("text=Nguồn:").first()).toBeVisible();
+    await expect(page.locator("text=Hiệu lực:").first()).toBeVisible();
     await expect(page.getByText("Sở hữu trí tuệ", { exact: true })).toBeVisible();
   });
 
@@ -35,6 +31,32 @@ test.describe("Homepage", () => {
     const data = JSON.parse(content!);
     expect(data["@type"]).toBe("WebSite");
     expect(data.potentialAction["@type"]).toBe("SearchAction");
+  });
+});
+
+test.describe("Change detail page", () => {
+  test("renders analysis and comparison for feed item", async ({ page }) => {
+    await page.goto("/thay-doi/shtt-ai-ownership");
+    await expect(page.locator("h1")).toContainText("[Luật SHTT]");
+    await expect(page.getByRole("heading", { name: "Phân tích thay đổi" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "So sánh & bối cảnh" })).toBeVisible();
+  });
+
+  test("shows before/after comparison", async ({ page }) => {
+    await page.goto("/thay-doi/shtt-ai-training-data");
+    await expect(page.locator("text=Trước thay đổi")).toBeVisible();
+    await expect(page.locator("text=Sau thay đổi")).toBeVisible();
+  });
+
+  test("has breadcrumb back to home", async ({ page }) => {
+    await page.goto("/thay-doi/shtt-ai-ownership");
+    const homeLink = page.getByRole("main").locator("nav a", { hasText: "Trang chủ" });
+    await expect(homeLink).toHaveAttribute("href", "/");
+  });
+
+  test("returns 404 for nonexistent change", async ({ page }) => {
+    const response = await page.goto("/thay-doi/nonexistent");
+    expect(response?.status()).toBe(404);
   });
 });
 
@@ -57,6 +79,19 @@ test.describe("Dữ liệu pháp luật page", () => {
   test("has search bar", async ({ page }) => {
     await page.goto("/du-lieu-phap-luat");
     await expect(page.getByRole("textbox", { name: "Tìm kiếm văn bản pháp luật..." })).toBeVisible();
+  });
+});
+
+test.describe("Văn bản mới có hiệu lực page", () => {
+  test("renders page with heading", async ({ page }) => {
+    await page.goto("/van-ban-moi-co-hieu-luc");
+    await expect(page.locator("h1")).toContainText("Văn bản mới có hiệu lực");
+  });
+
+  test("has filter bar", async ({ page }) => {
+    await page.goto("/van-ban-moi-co-hieu-luc");
+    const filterBar = page.locator("text=Lĩnh vực").first();
+    await expect(filterBar).toBeVisible();
   });
 });
 

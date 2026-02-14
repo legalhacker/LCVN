@@ -30,35 +30,35 @@ const jsonLd = {
 };
 
 interface FeedItem {
-  id: string;
+  slug: string;
   title: string;
   summary: string;
   legalBasis: string;
   sourceDocument: string;
+  effectiveDate?: string;
   tags: string[];
-  href: string;
 }
 
 const FEED_ITEMS: FeedItem[] = [
   {
-    id: "shtt-ai-ownership",
-    title: "Lần đầu tiên luật hóa quyền sở hữu trí tuệ gắn với trí tuệ nhân tạo (AI)",
+    slug: "shtt-ai-ownership",
+    title: "[Luật SHTT] Lần đầu luật hóa quyền SHTT với sản phẩm do AI tạo ra → ảnh hưởng trực tiếp tới doanh nghiệp công nghệ & startup AI",
     summary:
-      "Luật SHTT sửa đổi 2025 lần đầu tiên quy định việc xác lập quyền sở hữu trí tuệ đối với đối tượng được tạo ra có sử dụng hệ thống trí tuệ nhân tạo. Chính phủ được giao quy định chi tiết về phát sinh quyền, xác lập quyền và chủ thể quyền trong các trường hợp có AI tham gia.",
+      "Trước đây, pháp luật SHTT không thừa nhận quyền sở hữu trí tuệ đối với sản phẩm được tạo ra bởi AI. Nay Luật SHTT sửa đổi 2025 chính thức cho phép xác lập quyền, đồng thời giao Chính phủ quy định chi tiết về chủ thể quyền khi có AI tham gia.",
     legalBasis: "Khoản 5 Điều 6 (bổ sung)",
     sourceDocument: "Luật Sở hữu trí tuệ sửa đổi 2025 – số 131/2025/QH15",
-    tags: ["AI", "Sở hữu trí tuệ", "Luật mới 2025"],
-    href: "/search?q=s%E1%BB%9F+h%E1%BB%AFu+tr%C3%AD+tu%E1%BB%87+AI",
+    effectiveDate: "2026-01-01",
+    tags: ["AI", "Sở hữu trí tuệ", "Doanh nghiệp", "Luật mới 2025"],
   },
   {
-    id: "shtt-ai-training-data",
-    title: "Cho phép sử dụng dữ liệu đã công bố để huấn luyện hệ thống AI",
+    slug: "shtt-ai-training-data",
+    title: "[Luật SHTT] Cho phép dùng dữ liệu đã công bố để huấn luyện AI → doanh nghiệp AI có cơ sở pháp lý rõ ràng để thu thập dữ liệu",
     summary:
-      "Pháp luật lần đầu cho phép sử dụng hợp pháp văn bản và dữ liệu về đối tượng quyền sở hữu trí tuệ đã được công bố để nghiên cứu, thử nghiệm và huấn luyện hệ thống trí tuệ nhân tạo, với điều kiện không ảnh hưởng bất hợp lý đến quyền của chủ sở hữu.",
+      "Trước đây, việc sử dụng tác phẩm/dữ liệu có bản quyền để huấn luyện AI nằm trong vùng xám pháp lý. Nay luật cho phép rõ ràng, với điều kiện không ảnh hưởng bất hợp lý đến quyền của chủ sở hữu.",
     legalBasis: "Khoản 5 Điều 7 (mới)",
     sourceDocument: "Luật Sở hữu trí tuệ sửa đổi 2025 – số 131/2025/QH15",
+    effectiveDate: "2026-01-01",
     tags: ["AI", "Dữ liệu", "Huấn luyện AI", "Bản quyền"],
-    href: "/search?q=hu%E1%BA%A5n+luy%E1%BB%87n+AI+d%E1%BB%AF+li%E1%BB%87u",
   },
 ];
 
@@ -73,20 +73,18 @@ export default function HomePage() {
       <div className="p-4 lg:p-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center gap-2 pb-4 mb-1">
-            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-1.5 3h1.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
-            </svg>
+            <span className="text-base">📰</span>
             <span className="text-sm font-semibold text-gray-500">Những thay đổi mới nhất</span>
           </div>
 
           {FEED_ITEMS.map((item, idx) => (
             <article
-              key={item.id}
-              className={`py-6 ${idx !== FEED_ITEMS.length - 1 ? "border-b border-gray-100" : ""}`}
+              key={item.slug}
+              className={`py-5 ${idx !== FEED_ITEMS.length - 1 ? "border-b border-gray-100" : ""}`}
             >
               {/* Title */}
-              <h2 className="text-base font-semibold text-gray-900 leading-snug">
-                {item.title}
+              <h2 className="text-[15px] font-semibold text-gray-900 leading-snug">
+                <span className="mr-1">⚡</span>{item.title}
               </h2>
 
               {/* Summary */}
@@ -94,37 +92,40 @@ export default function HomePage() {
                 {item.summary}
               </p>
 
-              {/* Legal basis + Source */}
-              <div className="mt-3 space-y-1 text-xs text-gray-500">
-                <p>
-                  <span className="font-medium text-gray-600">Căn cứ pháp lý:</span>{" "}
-                  {item.legalBasis}
-                </p>
-                <p>
-                  <span className="font-medium text-gray-600">Văn bản nguồn:</span>{" "}
-                  {item.sourceDocument}
-                </p>
+              {/* Meta */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                <span>
+                  <span className="text-gray-500">Căn cứ:</span> {item.legalBasis}
+                </span>
+                <span>
+                  <span className="text-gray-500">Nguồn:</span> {item.sourceDocument}
+                </span>
+                {item.effectiveDate && (
+                  <span>
+                    <span className="text-gray-500">Hiệu lực:</span> {item.effectiveDate}
+                  </span>
+                )}
               </div>
 
               {/* Tags */}
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {item.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600"
+                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
 
-              {/* Action */}
-              <div className="mt-4">
+              {/* CTA */}
+              <div className="mt-3">
                 <Link
-                  href={item.href}
+                  href={`/thay-doi/${item.slug}`}
                   className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
                 >
-                  Xem chi tiết &rarr;
+                  Xem phân tích chi tiết &rarr;
                 </Link>
               </div>
             </article>

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const navItems = [
   { label: "Trang chủ", href: "/", icon: "home" },
+  { label: "Văn bản mới có hiệu lực", href: "/van-ban-moi-co-hieu-luc", icon: "check-circle" },
   { label: "Văn bản sắp có hiệu lực", href: "/van-ban-sap-co-hieu-luc", icon: "clock" },
   { label: "Dữ liệu pháp luật", href: "/du-lieu-phap-luat", icon: "database" },
   { label: "Biểu mẫu", href: "/?section=bieu-mau", icon: "form" },
@@ -19,6 +20,12 @@ function NavIcon({ type }: { type: string }) {
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+      );
+    case "check-circle":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       );
     case "clock":
