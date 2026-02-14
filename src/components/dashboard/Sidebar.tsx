@@ -75,8 +75,8 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="flex h-14 items-center gap-2 px-5 border-b border-gray-800">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-base font-bold text-white tracking-tight">LCVN</span>
-            <span className="text-[10px] text-gray-500 font-normal leading-tight">Regulatory<br />Intelligence</span>
+            <span className="text-base font-bold text-white tracking-tight">GCR</span>
+            <span className="text-[10px] text-gray-500 font-normal leading-tight">Granular Changes<br />of Regulation</span>
           </Link>
         </div>
 
