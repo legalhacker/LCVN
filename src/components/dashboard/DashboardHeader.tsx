@@ -13,12 +13,6 @@ export default function DashboardHeader() {
         </svg>
       </label>
 
-      {/* Logo */}
-      <Link href="/" className="hidden lg:flex flex-col shrink-0">
-        <span className="text-sm font-bold text-gray-900 tracking-tight leading-none">GCR</span>
-        <span className="text-[10px] text-gray-400 font-normal leading-tight mt-0.5">Guided Change of Regulations</span>
-      </Link>
-
       {/* Search — centered */}
       <form action="/search" method="get" className="flex-1 max-w-xl mx-auto">
         <div className="relative">

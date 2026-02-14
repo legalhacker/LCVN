@@ -80,8 +80,8 @@ export default function Sidebar() {
 
       <aside className="fixed left-0 top-0 z-40 h-full w-60 -translate-x-full bg-gray-900 text-gray-300 transition-transform duration-200 peer-checked:translate-x-0 lg:translate-x-0 lg:static lg:z-auto flex flex-col">
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2 px-5 border-b border-gray-800">
-          <Link href="/" className="flex flex-col">
+        <div className="flex h-14 items-center justify-center px-5 border-b border-gray-800">
+          <Link href="/" className="flex flex-col items-center">
             <span className="text-base font-bold text-white tracking-tight leading-none">GCR</span>
             <span className="text-[10px] text-gray-500 font-normal leading-tight mt-0.5">Guided Change of Regulations</span>
           </Link>
