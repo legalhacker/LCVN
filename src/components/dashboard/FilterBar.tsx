@@ -176,9 +176,11 @@ function SingleSelect({
 
 export default function FilterBar({
   showSearchInput = true,
+  showAuthorityFilter = true,
   basePath = "/",
 }: {
   showSearchInput?: boolean;
+  showAuthorityFilter?: boolean;
   basePath?: string;
 }) {
   const router = useRouter();
@@ -230,15 +232,17 @@ export default function FilterBar({
         }}
       />
 
-      <MultiSelect
-        label="Cơ quan ban hành"
-        options={AUTHORITIES}
-        selected={authorities}
-        onChange={(v) => {
-          setAuthorities(v);
-          applyFilters(undefined, v);
-        }}
-      />
+      {showAuthorityFilter && (
+        <MultiSelect
+          label="Cơ quan ban hành"
+          options={AUTHORITIES}
+          selected={authorities}
+          onChange={(v) => {
+            setAuthorities(v);
+            applyFilters(undefined, v);
+          }}
+        />
+      )}
 
       <SingleSelect
         label="Ngày hiệu lực"

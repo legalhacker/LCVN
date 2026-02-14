@@ -4,7 +4,6 @@ test.describe("Homepage", () => {
   test("renders regulatory intelligence page with sections", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("h1")).toContainText("Regulatory Intelligence");
-    await expect(page.locator("text=Văn bản mới có hiệu lực")).toBeVisible();
     await expect(page.locator("text=Sự kiện thay đổi pháp luật")).toBeVisible();
   });
 

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import FilterBar from "@/components/dashboard/FilterBar";
-import DocumentListTable from "@/components/dashboard/DocumentListTable";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
 
@@ -136,31 +135,11 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* Section 0 — Văn bản mới có hiệu lực */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">
-              Văn bản mới có hiệu lực
-            </h2>
-            <Link
-              href="/search"
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Tìm kiếm nâng cao
-            </Link>
-          </div>
+        <div>
+          <FilterBar showSearchInput={false} showAuthorityFilter={false} />
+        </div>
 
-          <div className="mb-3">
-            <FilterBar showSearchInput={false} />
-          </div>
-
-          <DocumentListTable
-            documents={documents}
-            slugToDocPage={SLUG_TO_DOC_PAGE}
-          />
-        </section>
-
-        {/* Section 1 — Sự kiện thay đổi pháp luật */}
+        {/* Sự kiện thay đổi pháp luật */}
         <section>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">
             Sự kiện thay đổi pháp luật
