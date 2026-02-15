@@ -23,6 +23,13 @@ enum ChangeStatus {
   published
 }
 
+enum HeadlineStatus {
+  draft
+  scheduled
+  active
+  archived
+}
+
 enum DocumentType {
   luat
   nghi_dinh
@@ -59,6 +66,7 @@ model User {
   role         UserRole @default(editor)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  headlines    HomepageHeadline[]
 
   @@map("users")
 }
@@ -94,9 +102,10 @@ model RegulatoryChange {
   status           ChangeStatus           @default(draft)
   legalDocumentId  String?                @map("legal_document_id") @db.Uuid
   legalDocument    LegalDocument?         @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
-  fields           RegulatoryChangeField[]
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
+  fields              RegulatoryChangeField[]
+  homepageHeadlines   HomepageHeadline[]
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
 
   @@map("regulatory_changes")
 }
@@ -207,4 +216,23 @@ model LegalMetadata {
 
   @@index([entityCanonicalId])
   @@map("legal_metadata")
+}
+
+model HomepageHeadline {
+  id                   String         @id @default(uuid()) @db.Uuid
+  regulatoryChangeId   String         @map("regulatory_change_id") @db.Uuid
+  regulatoryChange     RegulatoryChange @relation(fields: [regulatoryChangeId], references: [id], onDelete: Cascade)
+  title                String         @db.Text
+  subtitle             String?        @db.Text
+  position             Int            @default(0)
+  pinned               Boolean        @default(false)
+  status               HeadlineStatus @default(draft)
+  publishAt            DateTime?      @map("publish_at")
+  archiveAt            DateTime?      @map("archive_at")
+  createdById          String         @map("created_by_id") @db.Uuid
+  createdBy            User           @relation(fields: [createdById], references: [id])
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  @@map("homepage_headlines")
 }

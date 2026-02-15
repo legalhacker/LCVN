@@ -43,22 +43,26 @@ interface FeedItem {
 }
 
 export default async function HomePage() {
-  const changes = await prisma.regulatoryChange.findMany({
-    where: { status: "published" },
-    include: { fields: { include: { field: true } } },
-    orderBy: { effectiveDate: "desc" },
+  const headlines = await prisma.homepageHeadline.findMany({
+    where: { status: "active" },
+    include: {
+      regulatoryChange: {
+        include: { fields: { include: { field: true } } },
+      },
+    },
+    orderBy: [{ pinned: "desc" }, { position: "asc" }],
   });
 
   const fields = await prisma.field.findMany({ orderBy: { name: "asc" } });
 
-  const feedItems: FeedItem[] = changes.map((c) => ({
-    slug: c.slug,
-    title: c.headline,
-    summary: c.summary,
-    legalBasis: c.legalBasis,
-    sourceDocument: c.source,
-    effectiveDate: c.effectiveDate.toISOString().split("T")[0],
-    tags: c.fields.map((f) => f.field.name),
+  const feedItems: FeedItem[] = headlines.map((h) => ({
+    slug: h.regulatoryChange.slug,
+    title: h.title,
+    summary: h.subtitle || h.regulatoryChange.summary,
+    legalBasis: h.regulatoryChange.legalBasis,
+    sourceDocument: h.regulatoryChange.source,
+    effectiveDate: h.regulatoryChange.effectiveDate.toISOString().split("T")[0],
+    tags: h.regulatoryChange.fields.map((f) => f.field.name),
   }));
 
   return (

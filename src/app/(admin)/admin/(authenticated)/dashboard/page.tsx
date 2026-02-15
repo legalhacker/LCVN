@@ -4,21 +4,27 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [changesCount, documentsCount, fieldsCount, usersCount, recentChanges] =
+  const [changesCount, documentsCount, fieldsCount, usersCount, headlinesCount, activeHeadlines] =
     await Promise.all([
       prisma.regulatoryChange.count(),
       prisma.legalDocument.count(),
       prisma.field.count(),
       prisma.user.count(),
-      prisma.regulatoryChange.findMany({
-        where: { status: "published" },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: { id: true, headline: true, effectiveDate: true, slug: true },
+      prisma.homepageHeadline.count(),
+      prisma.homepageHeadline.findMany({
+        where: { status: "active" },
+        orderBy: [{ pinned: "desc" }, { position: "asc" }],
+        take: 10,
+        include: {
+          regulatoryChange: {
+            select: { slug: true },
+          },
+        },
       }),
     ]);
 
   const stats = [
+    { label: "Headlines", value: headlinesCount, href: "/admin/headlines" },
     { label: "Regulatory Changes", value: changesCount, href: "/admin/regulatory-changes" },
     { label: "Legal Documents", value: documentsCount, href: "/admin/legal-documents" },
     { label: "Fields", value: fieldsCount, href: "/admin/fields" },
@@ -43,24 +49,35 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Recent Published Changes
-        </h2>
-        {recentChanges.length === 0 ? (
-          <p className="text-sm text-gray-500">No published changes yet.</p>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Active Headlines
+          </h2>
+          <Link
+            href="/admin/headlines"
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Manage Headlines →
+          </Link>
+        </div>
+        {activeHeadlines.length === 0 ? (
+          <p className="text-sm text-gray-500">No active headlines. Create one to populate the homepage.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {recentChanges.map((change) => (
-              <li key={change.id} className="flex items-center justify-between py-3">
-                <Link
-                  href={`/admin/regulatory-changes/${change.id}`}
-                  className="text-sm font-medium text-gray-900 hover:text-blue-600 line-clamp-1"
-                >
-                  {change.headline}
-                </Link>
-                <span className="ml-4 shrink-0 text-xs text-gray-500">
-                  {change.effectiveDate.toLocaleDateString("vi-VN")}
-                </span>
+            {activeHeadlines.map((headline) => (
+              <li key={headline.id} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  {headline.pinned && <span className="shrink-0">📌</span>}
+                  <span className="shrink-0 text-xs text-gray-400 w-6 text-right">
+                    #{headline.position}
+                  </span>
+                  <Link
+                    href="/admin/headlines"
+                    className="text-sm font-medium text-gray-900 hover:text-blue-600 line-clamp-1"
+                  >
+                    {headline.title}
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

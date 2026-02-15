@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clean existing data
+  await prisma.homepageHeadline.deleteMany();
   await prisma.regulatoryChangeField.deleteMany();
   await prisma.regulatoryChange.deleteMany();
   await prisma.field.deleteMany();
@@ -1341,7 +1342,7 @@ async function main() {
   // ADMIN USER
   // ================================================================
   const passwordHash = await bcrypt.hash("admin123", 10);
-  await prisma.user.create({
+  const adminUser = await prisma.user.create({
     data: {
       email: "admin@lcvn.vn",
       passwordHash,
@@ -1455,6 +1456,35 @@ async function main() {
 
   console.log("Regulatory changes created: 2");
 
+  // ================================================================
+  // HOMEPAGE HEADLINES
+  // ================================================================
+  await prisma.homepageHeadline.create({
+    data: {
+      regulatoryChangeId: change1.id,
+      title: "[Luật SHTT] Lần đầu luật hóa quyền SHTT với sản phẩm do AI tạo ra → ảnh hưởng trực tiếp tới doanh nghiệp công nghệ & startup AI",
+      subtitle: "Luật SHTT sửa đổi 2025 chính thức cho phép xác lập quyền SHTT cho sản phẩm do AI tạo ra.",
+      position: 1,
+      pinned: false,
+      status: "active",
+      createdById: adminUser.id,
+    },
+  });
+
+  await prisma.homepageHeadline.create({
+    data: {
+      regulatoryChangeId: change2.id,
+      title: "[Luật SHTT] Cho phép dùng dữ liệu đã công bố để huấn luyện AI → doanh nghiệp AI có cơ sở pháp lý rõ ràng",
+      subtitle: "Ngoại lệ bản quyền dành riêng cho AI: cho phép sử dụng dữ liệu công khai để huấn luyện mô hình.",
+      position: 2,
+      pinned: false,
+      status: "active",
+      createdById: adminUser.id,
+    },
+  });
+
+  console.log("Homepage headlines created: 2");
+
   // Count results
   const docCount = await prisma.legalDocument.count();
   const artCount = await prisma.article.count();
@@ -1463,6 +1493,7 @@ async function main() {
   const userCount = await prisma.user.count();
   const fieldCount = await prisma.field.count();
   const changeCount = await prisma.regulatoryChange.count();
+  const headlineCount = await prisma.homepageHeadline.count();
 
   console.log("Seed completed successfully!");
   console.log(`Documents: ${docCount}`);
@@ -1472,6 +1503,7 @@ async function main() {
   console.log(`Users: ${userCount}`);
   console.log(`Fields: ${fieldCount}`);
   console.log(`Regulatory Changes: ${changeCount}`);
+  console.log(`Headlines: ${headlineCount}`);
 }
 
 main()
