@@ -45,7 +45,11 @@ export async function PUT(
 
   // Editors can update title, subtitle, position on own drafts
   if (!isAdmin) {
-    if (existing.createdById !== session!.user!.id) {
+    const user = await prisma.user.findUnique({
+      where: { email: session!.user!.email },
+      select: { id: true },
+    });
+    if (existing.createdById !== user?.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (existing.status !== "draft") {

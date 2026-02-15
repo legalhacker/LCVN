@@ -47,6 +47,16 @@ export async function POST(req: Request) {
     );
   }
 
+  // Look up user by email to get the actual DB UUID
+  const user = await prisma.user.findUnique({
+    where: { email: session!.user!.email },
+    select: { id: true },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 401 });
+  }
+
   const headline = await prisma.homepageHeadline.create({
     data: {
       regulatoryChangeId,
@@ -54,7 +64,7 @@ export async function POST(req: Request) {
       subtitle: subtitle || null,
       position: position ?? 0,
       status: "draft",
-      createdById: session!.user!.id!,
+      createdById: user.id,
     },
     include: {
       regulatoryChange: {

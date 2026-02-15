@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getAllTopicSlugs, getDocumentsByTopic } from "@/lib/content";
 
+export const dynamic = "force-dynamic";
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://lcvn.vn";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
