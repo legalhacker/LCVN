@@ -2,6 +2,23 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type HeadlineStatus = "draft" | "scheduled" | "active" | "archived";
 
@@ -49,6 +66,183 @@ const STATUS_BADGE_CLASSES: Record<HeadlineStatus, string> = {
   archived: "bg-yellow-100 text-yellow-800",
 };
 
+function SortableRow({
+  headline: h,
+  isAdmin,
+  editingId,
+  editData,
+  setEditData,
+  handleUpdate,
+  handleStatusChange,
+  handleTogglePin,
+  handleDelete,
+  startEdit,
+  setEditingId,
+}: {
+  headline: Headline;
+  isAdmin: boolean;
+  editingId: string | null;
+  editData: { title: string; subtitle: string };
+  setEditData: (data: { title: string; subtitle: string }) => void;
+  handleUpdate: (id: string) => void;
+  handleStatusChange: (id: string, status: HeadlineStatus) => void;
+  handleTogglePin: (id: string, pinned: boolean) => void;
+  handleDelete: (id: string) => void;
+  startEdit: (h: Headline) => void;
+  setEditingId: (id: string | null) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: h.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50">
+      <td className="px-2 py-3 text-center">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab touch-none p-1 text-gray-400 hover:text-gray-600 active:cursor-grabbing"
+          title="Drag to reorder"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="5" cy="3" r="1.5" />
+            <circle cx="11" cy="3" r="1.5" />
+            <circle cx="5" cy="8" r="1.5" />
+            <circle cx="11" cy="8" r="1.5" />
+            <circle cx="5" cy="13" r="1.5" />
+            <circle cx="11" cy="13" r="1.5" />
+          </svg>
+        </button>
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-900">{h.position}</td>
+      <td className="px-4 py-3">
+        {editingId === h.id ? (
+          <div className="space-y-2">
+            <textarea
+              value={editData.title}
+              onChange={(e) =>
+                setEditData({ ...editData, title: e.target.value })
+              }
+              className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              rows={2}
+            />
+            <input
+              value={editData.subtitle}
+              onChange={(e) =>
+                setEditData({ ...editData, subtitle: e.target.value })
+              }
+              className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              placeholder="Subtitle"
+            />
+            <div className="flex gap-1">
+              <button
+                onClick={() => handleUpdate(h.id)}
+                className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p className="text-sm font-medium text-gray-900 line-clamp-2">
+              {h.title}
+            </p>
+            {h.subtitle && (
+              <p className="mt-1 text-xs text-gray-500 line-clamp-1">
+                {h.subtitle}
+              </p>
+            )}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
+        <p className="line-clamp-1">{h.regulatoryChange.headline}</p>
+      </td>
+      <td className="px-4 py-3">
+        <span
+          className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[h.status]}`}
+        >
+          {h.status}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-center">{h.pinned ? "📌" : "—"}</td>
+      <td className="px-4 py-3 text-sm text-gray-600">
+        {h.createdBy.name || h.createdBy.email}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1">
+          {editingId !== h.id && (
+            <button
+              onClick={() => startEdit(h)}
+              className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            >
+              Edit
+            </button>
+          )}
+          {isAdmin && h.status === "draft" && (
+            <button
+              onClick={() => handleStatusChange(h.id, "active")}
+              className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
+            >
+              Publish
+            </button>
+          )}
+          {isAdmin && h.status === "draft" && (
+            <button
+              onClick={() => handleStatusChange(h.id, "scheduled")}
+              className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
+            >
+              Schedule
+            </button>
+          )}
+          {isAdmin && h.status === "active" && (
+            <button
+              onClick={() => handleStatusChange(h.id, "archived")}
+              className="rounded bg-yellow-600 px-2 py-1 text-xs text-white hover:bg-yellow-700"
+            >
+              Archive
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => handleTogglePin(h.id, h.pinned)}
+              className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+            >
+              {h.pinned ? "Unpin" : "Pin"}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => handleDelete(h.id)}
+              className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function HeadlinesPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "admin";
@@ -72,8 +266,12 @@ export default function HeadlinesPage() {
   const [editData, setEditData] = useState({
     title: "",
     subtitle: "",
-    position: 0,
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const fetchHeadlines = useCallback(async () => {
     setLoading(true);
@@ -159,7 +357,27 @@ export default function HeadlinesPage() {
 
   const startEdit = (h: Headline) => {
     setEditingId(h.id);
-    setEditData({ title: h.title, subtitle: h.subtitle || "", position: h.position });
+    setEditData({ title: h.title, subtitle: h.subtitle || "" });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = headlines.findIndex((h) => h.id === active.id);
+    const newIndex = headlines.findIndex((h) => h.id === over.id);
+
+    const reordered = arrayMove(headlines, oldIndex, newIndex).map(
+      (h, index) => ({ ...h, position: index })
+    );
+
+    setHeadlines(reordered);
+
+    await fetch("/api/admin/headlines/reorder", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds: reordered.map((h) => h.id) }),
+    });
   };
 
   return (
@@ -225,20 +443,6 @@ export default function HeadlinesPage() {
                 rows={2}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Position
-              </label>
-              <input
-                type="number"
-                value={formData.position}
-                onChange={(e) =>
-                  setFormData({ ...formData, position: parseInt(e.target.value) || 0 })
-                }
-                className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                min={0}
-              />
-            </div>
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -284,153 +488,49 @@ export default function HeadlinesPage() {
             No {activeTab} headlines.
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                <th className="px-4 py-3 w-16">Pos</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Regulatory Change</th>
-                <th className="px-4 py-3 w-24">Status</th>
-                <th className="px-4 py-3 w-16">Pin</th>
-                <th className="px-4 py-3">Created by</th>
-                <th className="px-4 py-3 w-48">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {headlines.map((h) => (
-                <tr key={h.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">{h.position}</td>
-                  <td className="px-4 py-3">
-                    {editingId === h.id ? (
-                      <div className="space-y-2">
-                        <textarea
-                          value={editData.title}
-                          onChange={(e) =>
-                            setEditData({ ...editData, title: e.target.value })
-                          }
-                          className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                          rows={2}
-                        />
-                        <input
-                          value={editData.subtitle}
-                          onChange={(e) =>
-                            setEditData({ ...editData, subtitle: e.target.value })
-                          }
-                          className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                          placeholder="Subtitle"
-                        />
-                        <input
-                          type="number"
-                          value={editData.position}
-                          onChange={(e) =>
-                            setEditData({
-                              ...editData,
-                              position: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
-                          min={0}
-                        />
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleUpdate(h.id)}
-                            className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingId(null)}
-                            className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                          {h.title}
-                        </p>
-                        {h.subtitle && (
-                          <p className="mt-1 text-xs text-gray-500 line-clamp-1">
-                            {h.subtitle}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">
-                    <p className="line-clamp-1">{h.regulatoryChange.headline}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[h.status]}`}
-                    >
-                      {h.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {h.pinned ? "📌" : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {h.createdBy.name || h.createdBy.email}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {editingId !== h.id && (
-                        <button
-                          onClick={() => startEdit(h)}
-                          className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {isAdmin && h.status === "draft" && (
-                        <button
-                          onClick={() => handleStatusChange(h.id, "active")}
-                          className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
-                        >
-                          Publish
-                        </button>
-                      )}
-                      {isAdmin && h.status === "draft" && (
-                        <button
-                          onClick={() => handleStatusChange(h.id, "scheduled")}
-                          className="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
-                        >
-                          Schedule
-                        </button>
-                      )}
-                      {isAdmin && h.status === "active" && (
-                        <button
-                          onClick={() => handleStatusChange(h.id, "archived")}
-                          className="rounded bg-yellow-600 px-2 py-1 text-xs text-white hover:bg-yellow-700"
-                        >
-                          Archive
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleTogglePin(h.id, h.pinned)}
-                          className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                        >
-                          {h.pinned ? "Unpin" : "Pin"}
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(h.id)}
-                          className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th className="px-2 py-3 w-10"></th>
+                  <th className="px-4 py-3 w-16">Pos</th>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Regulatory Change</th>
+                  <th className="px-4 py-3 w-24">Status</th>
+                  <th className="px-4 py-3 w-16">Pin</th>
+                  <th className="px-4 py-3">Created by</th>
+                  <th className="px-4 py-3 w-48">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <SortableContext
+                items={headlines.map((h) => h.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <tbody className="divide-y divide-gray-100">
+                  {headlines.map((h) => (
+                    <SortableRow
+                      key={h.id}
+                      headline={h}
+                      isAdmin={isAdmin}
+                      editingId={editingId}
+                      editData={editData}
+                      setEditData={setEditData}
+                      handleUpdate={handleUpdate}
+                      handleStatusChange={handleStatusChange}
+                      handleTogglePin={handleTogglePin}
+                      handleDelete={handleDelete}
+                      startEdit={startEdit}
+                      setEditingId={setEditingId}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </table>
+          </DndContext>
         )}
       </div>
     </div>
