@@ -8,6 +8,11 @@ export async function middleware(req: NextRequest) {
   // Allow access to login page
   if (pathname === "/admin/login") return NextResponse.next();
 
+  // Redirect /admin to /admin/dashboard
+  if (pathname === "/admin") {
+    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+  }
+
   // Protect all other /admin routes — lightweight JWT check
   const secureCookie = req.nextUrl.protocol === "https:";
   const token = await getToken({ req, secret: process.env.AUTH_SECRET, secureCookie });
