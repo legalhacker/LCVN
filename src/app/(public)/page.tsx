@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import RegulatoryFeed from "@/components/dashboard/RegulatoryFeed";
 import EffectiveDocuments from "@/components/dashboard/EffectiveDocuments";
+import OverviewPanel from "@/components/dashboard/OverviewPanel";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,11 @@ interface FeedItem {
 }
 
 export default async function HomePage() {
-  const [headlines, fields, effectiveDocs] = await Promise.all([
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [headlines, fields, effectiveDocs, upcomingCount, publishedChanges] = await Promise.all([
     prisma.homepageHeadline.findMany({
       where: { status: "active" },
       include: {
@@ -56,8 +61,15 @@ export default async function HomePage() {
     }),
     prisma.field.findMany({ orderBy: { name: "asc" } }),
     prisma.legalDocument.findMany({
-      where: { effectiveDate: { lte: new Date() } },
+      where: { effectiveDate: { lte: now } },
       orderBy: { effectiveDate: "desc" },
+    }),
+    prisma.legalDocument.count({
+      where: { effectiveDate: { gt: now } },
+    }),
+    prisma.regulatoryChange.findMany({
+      where: { status: "published" },
+      include: { fields: { include: { field: true } } },
     }),
   ]);
 
@@ -81,6 +93,33 @@ export default async function HomePage() {
     documentType: d.documentType,
   });
 
+  // Compute field counts for overview panel
+  const fieldCountMap = new Map<string, number>();
+  const recentFieldCountMap = new Map<string, number>();
+  for (const change of publishedChanges) {
+    for (const cf of change.fields) {
+      const name = cf.field.name;
+      fieldCountMap.set(name, (fieldCountMap.get(name) || 0) + 1);
+      if (change.createdAt >= thirtyDaysAgo) {
+        recentFieldCountMap.set(name, (recentFieldCountMap.get(name) || 0) + 1);
+      }
+    }
+  }
+  const fieldCounts = Array.from(fieldCountMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+  const recentFieldCounts = Array.from(recentFieldCountMap.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const overviewStats = {
+    effectiveCount: effectiveDocs.length,
+    upcomingCount,
+    changeCount: publishedChanges.length,
+    fieldCounts,
+    recentFieldCounts,
+  };
+
   const feedItems: FeedItem[] = headlines.map((h) => ({
     slug: h.regulatoryChange.slug,
     title: h.title,
@@ -98,18 +137,21 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="p-4 lg:p-6">
-        <div className="max-w-3xl mx-auto space-y-10">
-          <RegulatoryFeed
-            items={feedItems}
-            fields={fields.map((f) => f.name)}
-          />
+      <div className="flex">
+        <div className="flex-1 min-w-0 p-4 lg:p-6">
+          <div className="max-w-3xl mx-auto space-y-10">
+            <RegulatoryFeed
+              items={feedItems}
+              fields={fields.map((f) => f.name)}
+            />
 
-          <EffectiveDocuments
-            documents={effectiveDocs.map(serializeDoc)}
-            todayDocuments={todayDocs.map(serializeDoc)}
-          />
+            <EffectiveDocuments
+              documents={effectiveDocs.map(serializeDoc)}
+              todayDocuments={todayDocs.map(serializeDoc)}
+            />
+          </div>
         </div>
+        <OverviewPanel stats={overviewStats} />
       </div>
     </>
   );
