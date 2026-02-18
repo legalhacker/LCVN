@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import RegulatoryFeed from "@/components/dashboard/RegulatoryFeed";
+import EffectiveDocuments from "@/components/dashboard/EffectiveDocuments";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -43,17 +44,42 @@ interface FeedItem {
 }
 
 export default async function HomePage() {
-  const headlines = await prisma.homepageHeadline.findMany({
-    where: { status: "active" },
-    include: {
-      regulatoryChange: {
-        include: { fields: { include: { field: true } } },
+  const [headlines, fields, effectiveDocs] = await Promise.all([
+    prisma.homepageHeadline.findMany({
+      where: { status: "active" },
+      include: {
+        regulatoryChange: {
+          include: { fields: { include: { field: true } } },
+        },
       },
-    },
-    orderBy: [{ pinned: "desc" }, { position: "asc" }],
-  });
+      orderBy: [{ pinned: "desc" }, { position: "asc" }],
+    }),
+    prisma.field.findMany({ orderBy: { name: "asc" } }),
+    prisma.legalDocument.findMany({
+      where: { effectiveDate: { lte: new Date() } },
+      orderBy: { effectiveDate: "desc" },
+    }),
+  ]);
 
-  const fields = await prisma.field.findMany({ orderBy: { name: "asc" } });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  const todayDocs = effectiveDocs.filter(
+    (d) => d.effectiveDate >= today && d.effectiveDate < tomorrow
+  );
+
+  const serializeDoc = (d: (typeof effectiveDocs)[number]) => ({
+    id: d.id,
+    slug: d.slug,
+    title: d.title,
+    documentNumber: d.documentNumber,
+    issuingBody: d.issuingBody,
+    effectiveDate: d.effectiveDate.toISOString(),
+    status: d.status,
+    documentType: d.documentType,
+  });
 
   const feedItems: FeedItem[] = headlines.map((h) => ({
     slug: h.regulatoryChange.slug,
@@ -73,10 +99,15 @@ export default async function HomePage() {
       />
 
       <div className="p-4 lg:p-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto space-y-10">
           <RegulatoryFeed
             items={feedItems}
             fields={fields.map((f) => f.name)}
+          />
+
+          <EffectiveDocuments
+            documents={effectiveDocs.map(serializeDoc)}
+            todayDocuments={todayDocs.map(serializeDoc)}
           />
         </div>
       </div>
