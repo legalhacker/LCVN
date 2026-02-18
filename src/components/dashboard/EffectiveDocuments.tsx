@@ -168,17 +168,12 @@ export default function EffectiveDocuments({
               return (
                 <li key={doc.id} className="flex items-start gap-2">
                   <span className="text-amber-500 mt-0.5 shrink-0">•</span>
-                  <div className="min-w-0">
-                    <Link
-                      href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
-                      className="text-sm font-medium text-amber-900 hover:text-amber-700 transition-colors"
-                    >
-                      {doc.title}
-                    </Link>
-                    <span className="ml-2 text-xs text-amber-600">
-                      {doc.documentNumber}
-                    </span>
-                  </div>
+                  <Link
+                    href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
+                    className="text-sm font-medium text-amber-900 hover:text-amber-700 transition-colors"
+                  >
+                    {doc.title}
+                  </Link>
                 </li>
               );
             })}
@@ -186,44 +181,21 @@ export default function EffectiveDocuments({
         </div>
       )}
 
-      {/* Document list */}
+      {/* Document list — headline-only view */}
       {filtered.length > 0 ? (
         filtered.map((doc, idx) => {
           const docPage = SLUG_TO_DOC_PAGE[doc.slug];
-          const typeLabel = DOC_TYPE_LABELS[doc.documentType] || doc.documentType;
-          const typeCls = DOC_TYPE_BADGE[doc.documentType] || "bg-gray-50 text-gray-700 border-gray-200";
-
           return (
             <article
               key={doc.id}
-              className={`py-5 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
+              className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
             >
-              <div className="flex items-start gap-2 flex-wrap">
-                <h3 className="text-[15px] font-semibold text-gray-900 leading-snug">
-                  {doc.title}
-                </h3>
-                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium shrink-0 ${typeCls}`}>
-                  {typeLabel}
-                </span>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-                <span>
-                  <span className="text-gray-500">Số hiệu:</span> {doc.documentNumber}
-                </span>
-                <span>
-                  <span className="text-gray-500">Hiệu lực:</span> {formatDate(doc.effectiveDate)}
-                </span>
-              </div>
-
-              <div className="mt-3">
-                <Link
-                  href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  Xem chi tiết &rarr;
-                </Link>
-              </div>
+              <Link
+                href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
+                className="text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+              >
+                {doc.title}
+              </Link>
             </article>
           );
         })

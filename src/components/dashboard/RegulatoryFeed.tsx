@@ -146,54 +146,20 @@ export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; f
         </div>
       </div>
 
-      {/* Feed items */}
+      {/* Feed items — headline-only view */}
       {filtered.length > 0 ? (
         filtered.map((item, idx) => (
           <article
             key={item.slug}
-            className={`py-5 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
+            className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
           >
-            <h3 className="text-[15px] font-semibold text-gray-900 leading-snug">
-              <span className="mr-1">⚡</span>{item.title}
-            </h3>
-
-            <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-              {item.summary}
-            </p>
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
-              <span>
-                <span className="text-gray-500">Căn cứ:</span> {item.legalBasis}
-              </span>
-              <span>
-                <span className="text-gray-500">Nguồn:</span> {item.sourceDocument}
-              </span>
-              {item.effectiveDate && (
-                <span>
-                  <span className="text-gray-500">Hiệu lực:</span> {item.effectiveDate}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-3">
-              <Link
-                href={`/thay-doi/${item.slug}`}
-                className="text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
-              >
-                Xem phân tích chi tiết &rarr;
-              </Link>
-            </div>
+            <Link
+              href={`/thay-doi/${item.slug}`}
+              className="flex items-start gap-1.5 text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+            >
+              <span className="shrink-0">⚡</span>
+              <span>{item.title}</span>
+            </Link>
           </article>
         ))
       ) : (
