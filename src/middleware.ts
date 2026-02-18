@@ -9,7 +9,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/admin/login") return NextResponse.next();
 
   // Protect all other /admin routes — lightweight JWT check
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   if (!token) {
     const loginUrl = new URL("/admin/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
