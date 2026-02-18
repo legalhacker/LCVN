@@ -5,12 +5,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const navItems = [
   { label: "Trang chủ", href: "/", icon: "home" },
-  { label: "Văn bản mới có hiệu lực", href: "/van-ban-moi-co-hieu-luc", icon: "check-circle" },
-  { label: "Văn bản sắp có hiệu lực", href: "/van-ban-sap-co-hieu-luc", icon: "clock" },
+  { label: "Dự thảo sắp có hiệu lực", href: "/van-ban-sap-co-hieu-luc", icon: "clock" },
   { label: "Dữ liệu pháp luật", href: "/du-lieu-phap-luat", icon: "database" },
   { label: "Biểu mẫu", href: "/?section=bieu-mau", icon: "form" },
-  { label: "Doanh nghiệp của bạn", href: "/?section=doanh-nghiep", icon: "building" },
-  { label: "API", href: "/api-docs", icon: "code" },
 ];
 
 function NavIcon({ type }: { type: string }) {
