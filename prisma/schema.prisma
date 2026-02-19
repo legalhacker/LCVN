@@ -218,6 +218,19 @@ model LegalMetadata {
   @@map("legal_metadata")
 }
 
+model Member {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.Text
+  name         String?   @db.VarChar(255)
+  avatarUrl    String?   @map("avatar_url") @db.Text
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("members")
+}
+
 model HomepageHeadline {
   id                   String         @id @default(uuid()) @db.Uuid
   regulatoryChangeId   String         @map("regulatory_change_id") @db.Uuid

@@ -11,7 +11,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Credentials({
-      name: "credentials",
+      id: "admin-credentials",
+      name: "Admin Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -37,6 +38,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          userType: "admin",
+        };
+      },
+    }),
+    Credentials({
+      id: "member-credentials",
+      name: "Member Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        const member = await prisma.member.findUnique({
+          where: { email: credentials.email as string },
+        });
+
+        if (!member) return null;
+
+        const isValid = await bcrypt.compare(
+          credentials.password as string,
+          member.passwordHash
+        );
+
+        if (!isValid) return null;
+
+        await prisma.member.update({
+          where: { id: member.id },
+          data: { lastLoginAt: new Date() },
+        });
+
+        return {
+          id: member.id,
+          email: member.email,
+          name: member.name,
+          userType: "member",
+          avatarUrl: member.avatarUrl,
         };
       },
     }),
@@ -46,6 +85,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.role = user.role;
         token.id = user.id;
+        token.userType = user.userType;
+        token.avatarUrl = user.avatarUrl ?? undefined;
       }
       return token;
     },
@@ -53,6 +94,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.role = token.role as string;
         session.user.id = token.id as string;
+        session.user.userType = token.userType as string;
+        session.user.avatarUrl = token.avatarUrl as string | undefined;
       }
       return session;
     },

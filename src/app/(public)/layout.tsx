@@ -1,3 +1,4 @@
+import { SessionProvider } from "next-auth/react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 export default function PublicLayout({
@@ -5,5 +6,9 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <SessionProvider>
+      <DashboardLayout>{children}</DashboardLayout>
+    </SessionProvider>
+  );
 }
