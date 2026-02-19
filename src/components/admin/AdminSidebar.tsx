@@ -22,6 +22,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [activeHeadlineCount, setActiveHeadlineCount] = useState<number | null>(null);
+  const [crawledPendingCount, setCrawledPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/headlines?countOnly=true")
@@ -32,6 +33,15 @@ export default function AdminSidebar() {
         }
       })
       .catch(() => {});
+
+    fetch("/api/admin/crawled-items?countOnly=true")
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.pendingCount === "number") {
+          setCrawledPendingCount(data.pendingCount);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const sections: NavSection[] = [
@@ -39,6 +49,17 @@ export default function AdminSidebar() {
       title: "TỔNG QUAN",
       items: [
         { href: "/admin/dashboard", label: "Dashboard", icon: "📊" },
+      ],
+    },
+    {
+      title: "THU THẬP",
+      items: [
+        {
+          href: "/admin/crawled-items",
+          label: "Tin thu thập",
+          icon: "🔍",
+          badge: crawledPendingCount ?? undefined,
+        },
       ],
     },
     {

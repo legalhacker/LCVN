@@ -37,6 +37,20 @@ enum DocumentType {
   quyet_dinh
 }
 
+enum CrawledDocumentType {
+  law
+  amendment
+  draft
+  policy_direction
+}
+
+enum CrawlReviewStatus {
+  pending
+  reviewed
+  published
+  rejected
+}
+
 enum DocumentStatus {
   active
   amended
@@ -248,4 +262,34 @@ model HomepageHeadline {
   updatedAt            DateTime       @updatedAt @map("updated_at")
 
   @@map("homepage_headlines")
+}
+
+model CrawledItem {
+  id                     String              @id @default(uuid()) @db.Uuid
+  title                  String              @db.Text
+  summary                String?             @db.Text
+  sourceUrl              String              @unique @map("source_url") @db.Text
+  sourceName             String              @map("source_name") @db.VarChar(100)
+  publishDate            DateTime?           @map("publish_date")
+  documentType           CrawledDocumentType @default(law) @map("document_type")
+  isDraft                Boolean             @default(false) @map("is_draft")
+  legalFields            String[]            @map("legal_fields")
+  affectedSubjects       String[]            @map("affected_subjects")
+  consultationStartDate  DateTime?           @map("consultation_start_date")
+  consultationEndDate    DateTime?           @map("consultation_end_date")
+  draftingAuthority      String?             @map("drafting_authority") @db.VarChar(255)
+  expectedApprovalTime   String?             @map("expected_approval_time") @db.VarChar(255)
+  reviewStatus           CrawlReviewStatus   @default(pending) @map("review_status")
+  editedTitle            String?             @map("edited_title") @db.Text
+  editedSummary          String?             @map("edited_summary") @db.Text
+  adminNotes             String?             @map("admin_notes") @db.Text
+  reviewedAt             DateTime?           @map("reviewed_at")
+  rawHtml                String?             @map("raw_html") @db.Text
+  crawledAt              DateTime            @default(now()) @map("crawled_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+
+  @@index([reviewStatus])
+  @@index([sourceName])
+  @@index([crawledAt])
+  @@map("crawled_items")
 }
