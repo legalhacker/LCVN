@@ -2,15 +2,15 @@
   "crons": [
     {
       "path": "/api/cron/crawl-news",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/crawl-policy",
-      "schedule": "0 2,14 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/crawl-drafts",
-      "schedule": "0 4,16 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
