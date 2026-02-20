@@ -12,6 +12,7 @@ interface DocItem {
   effectiveDate: string;
   status: string;
   documentType: string;
+  tags: string[];
 }
 
 const SLUG_TO_DOC_PAGE: Record<string, string> = {
@@ -20,40 +21,29 @@ const SLUG_TO_DOC_PAGE: Record<string, string> = {
   "luat-doanh-nghiep": "enterprise-law-2020",
 };
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  luat: "Luật",
-  nghi_dinh: "Nghị định",
-  thong_tu: "Thông tư",
-  quyet_dinh: "Quyết định",
-};
-
-const DOC_TYPE_BADGE: Record<string, string> = {
-  luat: "bg-blue-50 text-blue-700 border-blue-200",
-  nghi_dinh: "bg-purple-50 text-purple-700 border-purple-200",
-  thong_tu: "bg-teal-50 text-teal-700 border-teal-200",
-  quyet_dinh: "bg-orange-50 text-orange-700 border-orange-200",
-};
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
+const DEFAULT_FIELDS = [
+  "Đầu tư",
+  "Doanh nghiệp",
+  "Trí tuệ nhân tạo",
+  "Bảo vệ dữ liệu",
+  "Lao động",
+  "Tài chính – ngân hàng",
+];
 
 export default function EffectiveDocuments({
   documents,
   todayDocuments,
+  fields,
   maxItems,
 }: {
   documents: DocItem[];
   todayDocuments: DocItem[];
+  fields?: string[];
   maxItems?: number;
 }) {
-  const allTypes = Object.keys(DOC_TYPE_LABELS);
-  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
-  const [appliedTypes, setAppliedTypes] = useState<Set<string>>(new Set());
+  const FIELDS = fields && fields.length > 0 ? fields : DEFAULT_FIELDS;
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -67,34 +57,39 @@ export default function EffectiveDocuments({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  function toggleType(type: string) {
-    setSelectedTypes((prev) => {
+  function toggleField(field: string) {
+    setSelectedFields((prev) => {
       const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
+      if (next.has(field)) next.delete(field);
+      else next.add(field);
       return next;
     });
   }
 
   function applyFilter() {
-    setAppliedTypes(new Set(selectedTypes));
+    setAppliedFields(new Set(selectedFields));
     setDropdownOpen(false);
   }
 
   const allFiltered =
-    appliedTypes.size === 0
+    appliedFields.size === 0
       ? documents
-      : documents.filter((d) => appliedTypes.has(d.documentType));
+      : documents.filter((d) => {
+          for (const f of appliedFields) {
+            if (d.tags.some((t) => t === f)) return true;
+          }
+          return false;
+        });
 
   const filtered = maxItems ? allFiltered.slice(0, maxItems) : allFiltered;
   const hasMore = maxItems ? allFiltered.length > maxItems : false;
 
   const triggerLabel =
-    selectedTypes.size === 0
-      ? "Loại văn bản"
-      : selectedTypes.size <= 2
-        ? Array.from(selectedTypes).map((t) => DOC_TYPE_LABELS[t] || t).join(", ")
-        : `${selectedTypes.size} loại`;
+    selectedFields.size === 0
+      ? "Lĩnh vực"
+      : selectedFields.size <= 2
+        ? Array.from(selectedFields).join(", ")
+        : `${selectedFields.size} lĩnh vực`;
 
   return (
     <div>
@@ -120,13 +115,13 @@ export default function EffectiveDocuments({
 
             {dropdownOpen && (
               <div className="absolute right-0 sm:left-0 top-full mt-1 z-20 w-56 rounded-lg border border-gray-200 bg-white shadow-lg py-1">
-                {allTypes.map((type) => {
-                  const checked = selectedTypes.has(type);
+                {FIELDS.map((field) => {
+                  const checked = selectedFields.has(field);
                   return (
                     <button
-                      key={type}
+                      key={field}
                       type="button"
-                      onClick={() => toggleType(type)}
+                      onClick={() => toggleField(field)}
                       className="flex items-center gap-2.5 w-full px-3 py-2 text-[13px] text-gray-700 hover:bg-gray-50 transition-colors text-left"
                     >
                       <span
@@ -140,7 +135,7 @@ export default function EffectiveDocuments({
                           </svg>
                         )}
                       </span>
-                      {DOC_TYPE_LABELS[type] || type}
+                      {field}
                     </button>
                   );
                 })}
@@ -219,7 +214,7 @@ export default function EffectiveDocuments({
       ) : (
         <div className="py-12 text-center">
           <p className="text-sm text-gray-400">
-            Không có văn bản nào trong loại đã chọn.
+            Không có văn bản nào trong lĩnh vực đã chọn.
           </p>
         </div>
       )}

@@ -63,6 +63,11 @@ export default async function HomePage() {
     prisma.legalDocument.findMany({
       where: { effectiveDate: { lte: now } },
       orderBy: { effectiveDate: "desc" },
+      include: {
+        regulatoryChanges: {
+          include: { fields: { include: { field: true } } },
+        },
+      },
     }),
     prisma.legalDocument.count({
       where: { effectiveDate: { gt: now } },
@@ -82,16 +87,25 @@ export default async function HomePage() {
     (d) => d.effectiveDate >= today && d.effectiveDate < tomorrow
   );
 
-  const serializeDoc = (d: (typeof effectiveDocs)[number]) => ({
-    id: d.id,
-    slug: d.slug,
-    title: d.title,
-    documentNumber: d.documentNumber,
-    issuingBody: d.issuingBody,
-    effectiveDate: d.effectiveDate.toISOString(),
-    status: d.status,
-    documentType: d.documentType,
-  });
+  const serializeDoc = (d: (typeof effectiveDocs)[number]) => {
+    const fieldNames = new Set<string>();
+    for (const rc of d.regulatoryChanges) {
+      for (const rcf of rc.fields) {
+        fieldNames.add(rcf.field.name);
+      }
+    }
+    return {
+      id: d.id,
+      slug: d.slug,
+      title: d.title,
+      documentNumber: d.documentNumber,
+      issuingBody: d.issuingBody,
+      effectiveDate: d.effectiveDate.toISOString(),
+      status: d.status,
+      documentType: d.documentType,
+      tags: Array.from(fieldNames),
+    };
+  };
 
   // Compute field counts for overview panel
   const fieldCountMap = new Map<string, number>();
@@ -149,6 +163,7 @@ export default async function HomePage() {
             <EffectiveDocuments
               documents={effectiveDocs.map(serializeDoc)}
               todayDocuments={todayDocs.map(serializeDoc)}
+              fields={fields.map((f) => f.name)}
               maxItems={10}
             />
           </div>
