@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import type { ParsedDocument, ParseResult } from "@/lib/parsers/types";
 
 type Step = "upload" | "preview";
@@ -15,35 +15,18 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 
 export default function LegalDocumentUpload() {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
-  const [isTxt, setIsTxt] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
 
-  // Metadata form state (for .txt files)
-  const [meta, setMeta] = useState({
-    canonicalId: "",
-    title: "",
-    documentNumber: "",
-    documentType: "luat",
-    issuingBody: "",
-    issuedDate: "",
-    effectiveDate: "",
-    slug: "",
-    year: new Date().getFullYear(),
-    status: "active",
-  });
-
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
-    setIsTxt(f.name.toLowerCase().endsWith(".txt"));
     setError("");
     setParseResult(null);
     setStep("upload");
@@ -57,10 +40,6 @@ export default function LegalDocumentUpload() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
-      if (isTxt) {
-        formData.append("metadata", JSON.stringify(meta));
-      }
 
       const res = await fetch("/api/admin/legal-documents/upload", {
         method: "POST",
@@ -113,9 +92,6 @@ export default function LegalDocumentUpload() {
     }
   }
 
-  const inputClass = "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm";
-  const labelClass = "block text-sm font-medium text-gray-700";
-
   return (
     <div className="space-y-6">
       {error && (
@@ -137,133 +113,17 @@ export default function LegalDocumentUpload() {
       {/* Step 1: Upload */}
       {step === "upload" && (
         <div className="rounded-lg bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Upload Document File</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Upload JSON</h2>
 
           <div className="mb-4">
-            <label className={labelClass}>File (.json or .txt)</label>
+            <label className="block text-sm font-medium text-gray-700">File (.json)</label>
             <input
-              ref={fileRef}
               type="file"
-              accept=".json,.txt"
+              accept=".json"
               onChange={handleFileChange}
               className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
             />
           </div>
-
-          {/* Metadata form for .txt files */}
-          {isTxt && (
-            <div className="mt-6 border-t pt-6">
-              <h3 className="mb-4 text-sm font-semibold text-gray-900">
-                Document Metadata (required for .txt files)
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>Title *</label>
-                  <input
-                    value={meta.title}
-                    onChange={(e) => setMeta({ ...meta, title: e.target.value })}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Canonical ID *</label>
-                  <input
-                    value={meta.canonicalId}
-                    onChange={(e) => setMeta({ ...meta, canonicalId: e.target.value })}
-                    placeholder="e.g. VN_LLD_2019"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Document Number *</label>
-                  <input
-                    value={meta.documentNumber}
-                    onChange={(e) => setMeta({ ...meta, documentNumber: e.target.value })}
-                    placeholder="e.g. 45/2019/QH14"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Document Type *</label>
-                  <select
-                    value={meta.documentType}
-                    onChange={(e) => setMeta({ ...meta, documentType: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="luat">Luật</option>
-                    <option value="nghi_dinh">Nghị định</option>
-                    <option value="thong_tu">Thông tư</option>
-                    <option value="quyet_dinh">Quyết định</option>
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Issuing Body *</label>
-                  <input
-                    value={meta.issuingBody}
-                    onChange={(e) => setMeta({ ...meta, issuingBody: e.target.value })}
-                    placeholder="e.g. Quốc hội"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Issued Date *</label>
-                  <input
-                    type="date"
-                    value={meta.issuedDate}
-                    onChange={(e) => setMeta({ ...meta, issuedDate: e.target.value })}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Effective Date *</label>
-                  <input
-                    type="date"
-                    value={meta.effectiveDate}
-                    onChange={(e) => setMeta({ ...meta, effectiveDate: e.target.value })}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Slug *</label>
-                  <input
-                    value={meta.slug}
-                    onChange={(e) => setMeta({ ...meta, slug: e.target.value })}
-                    placeholder="e.g. bo-luat-lao-dong"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Year *</label>
-                  <input
-                    type="number"
-                    value={meta.year}
-                    onChange={(e) => setMeta({ ...meta, year: parseInt(e.target.value) || 0 })}
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Status</label>
-                  <select
-                    value={meta.status}
-                    onChange={(e) => setMeta({ ...meta, status: e.target.value })}
-                    className={inputClass}
-                  >
-                    <option value="active">Active</option>
-                    <option value="amended">Amended</option>
-                    <option value="repealed">Repealed</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="mt-6 flex gap-3">
             <button

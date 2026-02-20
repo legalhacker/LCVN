@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/admin-auth";
 import { parseJsonDocument } from "@/lib/parsers/json-parser";
-import { parseTextDocument } from "@/lib/parsers/text-parser";
 import type { ParsedDocument } from "@/lib/parsers/types";
 import { Prisma } from "@prisma/client";
 
@@ -33,38 +32,13 @@ async function handlePreview(req: Request) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
+  if (!file.name.toLowerCase().endsWith(".json")) {
+    return NextResponse.json({ error: "Only .json files are supported" }, { status: 400 });
+  }
+
   const text = await file.text();
-  const fileName = file.name.toLowerCase();
-
-  if (fileName.endsWith(".json")) {
-    const result = parseJsonDocument(text);
-    return NextResponse.json(result);
-  }
-
-  if (fileName.endsWith(".txt")) {
-    const metadataRaw = formData.get("metadata") as string | null;
-    if (!metadataRaw) {
-      return NextResponse.json(
-        { error: "Metadata is required for .txt files" },
-        { status: 400 }
-      );
-    }
-
-    let metadata;
-    try {
-      metadata = JSON.parse(metadataRaw);
-    } catch {
-      return NextResponse.json({ error: "Invalid metadata JSON" }, { status: 400 });
-    }
-
-    const result = parseTextDocument(text, metadata);
-    return NextResponse.json(result);
-  }
-
-  return NextResponse.json(
-    { error: "Unsupported file type. Use .json or .txt" },
-    { status: 400 }
-  );
+  const result = parseJsonDocument(text);
+  return NextResponse.json(result);
 }
 
 async function handleSave(req: Request) {
