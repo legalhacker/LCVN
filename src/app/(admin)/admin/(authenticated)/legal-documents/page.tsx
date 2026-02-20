@@ -15,12 +15,20 @@ export default async function LegalDocumentsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Legal Documents</h1>
-        <Link
-          href="/admin/legal-documents/new"
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          New Document
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/admin/legal-documents/upload"
+            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Upload
+          </Link>
+          <Link
+            href="/admin/legal-documents/new"
+            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            New Document
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-sm">
