@@ -36,12 +36,95 @@ interface Props {
   legalDocuments: { id: string; title: string }[];
 }
 
+interface ParsedPreview {
+  articles: number;
+  clauses: number;
+  points: number;
+  title: string;
+}
+
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function asArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
+}
+
+function countContent(obj: Record<string, unknown>): Omit<ParsedPreview, "title"> {
+  let articles = 0;
+  let clauses = 0;
+  let points = 0;
+
+  function countArticle(art: Record<string, unknown>) {
+    const raw = art.number ?? art.articleNumber;
+    if (raw === undefined || raw === null) return;
+    articles++;
+    for (const cl of asArray(art.clauses)) {
+      const c = cl as Record<string, unknown>;
+      if ((c.number ?? c.clauseNumber) == null) continue;
+      clauses++;
+      for (const pt of asArray(c.points)) {
+        const p = pt as Record<string, unknown>;
+        if ((p.number ?? p.pointLetter) != null) points++;
+      }
+    }
+  }
+
+  for (const ch of asArray(obj.chapters)) {
+    const chapter = ch as Record<string, unknown>;
+    for (const art of asArray(chapter.articles))
+      countArticle(art as Record<string, unknown>);
+    for (const sec of asArray(chapter.sections)) {
+      const section = sec as Record<string, unknown>;
+      for (const art of asArray(section.articles))
+        countArticle(art as Record<string, unknown>);
+    }
+  }
+
+  for (const art of asArray(obj.articles))
+    countArticle(art as Record<string, unknown>);
+
+  return { articles, clauses, points };
+}
+
 export default function RegulatoryChangeForm({ initialData, fields, legalDocuments }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [jsonFile, setJsonFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<ParsedPreview | null>(null);
 
   const isEdit = !!initialData?.id;
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setJsonFile(null);
+      setUploadPreview(null);
+      return;
+    }
+
+    setError("");
+    let obj: Record<string, unknown>;
+    try {
+      obj = JSON.parse(await file.text());
+    } catch {
+      setError("Invalid JSON file");
+      setJsonFile(null);
+      setUploadPreview(null);
+      return;
+    }
+
+    setJsonFile(file);
+    const counts = countContent(obj);
+    setUploadPreview({ ...counts, title: str(obj.title) });
+  }
+
+  function clearFile() {
+    setJsonFile(null);
+    setUploadPreview(null);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,6 +132,29 @@ export default function RegulatoryChangeForm({ initialData, fields, legalDocumen
     setError("");
 
     const form = new FormData(e.currentTarget);
+
+    let legalDocumentId: string | null = (form.get("legalDocumentId") as string) || null;
+
+    // If a JSON file is attached, upload it first to create the LegalDocument
+    if (jsonFile) {
+      const uploadData = new FormData();
+      uploadData.append("file", jsonFile);
+
+      const uploadRes = await fetch("/api/admin/legal-documents/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json();
+        setError(data.error || "Failed to upload legal document");
+        setSaving(false);
+        return;
+      }
+
+      const uploaded = await uploadRes.json();
+      legalDocumentId = uploaded.id;
+    }
 
     const body = {
       slug: form.get("slug"),
@@ -67,7 +173,7 @@ export default function RegulatoryChangeForm({ initialData, fields, legalDocumen
       timeline: form.get("timeline") || null,
       context: form.get("context") || null,
       status: form.get("status"),
-      legalDocumentId: form.get("legalDocumentId") || null,
+      legalDocumentId,
       fieldIds: form.getAll("fieldIds"),
     };
 
@@ -237,12 +343,37 @@ export default function RegulatoryChangeForm({ initialData, fields, legalDocumen
           <div>
             <label className="block text-sm font-medium text-gray-700">Legal Document</label>
             <select name="legalDocumentId" defaultValue={initialData?.legalDocumentId || ""}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+              disabled={!!jsonFile}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-400">
               <option value="">None</option>
               {legalDocuments.map((doc) => (
                 <option key={doc.id} value={doc.id}>{doc.title}</option>
               ))}
             </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Or upload new document (JSON)
+            </label>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+            />
+            {uploadPreview && (
+              <div className="mt-2 flex items-center gap-3">
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">{uploadPreview.title || "Untitled"}</span>
+                  {" — "}
+                  {uploadPreview.articles} articles, {uploadPreview.clauses} clauses, {uploadPreview.points} points
+                </p>
+                <button type="button" onClick={clearFile}
+                  className="text-sm text-red-600 hover:text-red-800">
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -250,7 +381,7 @@ export default function RegulatoryChangeForm({ initialData, fields, legalDocumen
       <div className="flex gap-3">
         <button type="submit" disabled={saving}
           className="rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50">
-          {saving ? "Saving..." : isEdit ? "Update" : "Create"}
+          {saving ? "Saving..." : isEdit ? "Update" : jsonFile ? "Upload & Create" : "Create"}
         </button>
         <button type="button" onClick={() => router.back()}
           className="rounded-lg border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
