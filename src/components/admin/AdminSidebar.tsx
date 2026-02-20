@@ -92,9 +92,10 @@ export default function AdminSidebar() {
 
   return (
     <aside className="flex h-full w-64 flex-col bg-gray-900 text-white">
-      <div className="flex h-16 items-center px-6">
-        <Link href="/admin/dashboard" className="text-lg font-bold">
-          GCR Admin
+      <div className="px-6 py-4">
+        <Link href="/admin/dashboard" className="block">
+          <span className="text-lg font-bold">LCVN</span>
+          <span className="block text-xs text-gray-400">Legal Changes in Vietnam</span>
         </Link>
       </div>
 
