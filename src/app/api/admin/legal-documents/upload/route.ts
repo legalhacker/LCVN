@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/admin-auth";
-import { Prisma } from "@prisma/client";
 
 const DOC_TYPE_MAP: Record<string, string> = {
   LAW: "luat", law: "luat", luat: "luat",
@@ -10,13 +9,30 @@ const DOC_TYPE_MAP: Record<string, string> = {
   DECISION: "quyet_dinh", decision: "quyet_dinh", quyet_dinh: "quyet_dinh",
 };
 
+interface ArtData {
+  number: number;
+  title: string | null;
+  content: string;
+  chapter: string | null;
+  section: string | null;
+  clauses: ClData[];
+}
+interface ClData {
+  number: number;
+  content: string;
+  points: PtData[];
+}
+interface PtData {
+  letter: string;
+  content: string;
+}
+
 export async function POST(req: Request) {
-  const { error, status } = await requireAuth();
-  if (error) return NextResponse.json({ error }, { status });
+  const { error: authError, status: authStatus } = await requireAuth();
+  if (authError) return NextResponse.json({ error: authError }, { status: authStatus });
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
@@ -28,191 +44,242 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Map metadata from external format
-  const title = (obj.title as string) || "";
-  const canonicalId = (obj.document_id as string) || (obj.canonicalId as string) || "";
-  const documentNumber = (obj.document_number as string) || (obj.documentNumber as string) || "";
-  const rawDocType = (obj.document_type as string) || (obj.documentType as string) || "";
-  const documentType = DOC_TYPE_MAP[rawDocType];
-  const issuingBody = (obj.issuing_authority as string) || (obj.issuingBody as string) || "";
-  const year = (obj.year as number) || 0;
+  // Read form field overrides (sent alongside the file from the merged form)
+  const fTitle = str(formData.get("title"));
+  const fCanonicalId = str(formData.get("canonicalId"));
+  const fDocumentNumber = str(formData.get("documentNumber"));
+  const fDocumentType = str(formData.get("documentType"));
+  const fIssuingBody = str(formData.get("issuingBody"));
+  const fIssuedDate = str(formData.get("issuedDate"));
+  const fEffectiveDate = str(formData.get("effectiveDate"));
+  const fSlug = str(formData.get("slug"));
+  const fYear = formData.get("year") ? parseInt(formData.get("year") as string) : 0;
+  const fStatus = str(formData.get("status"));
 
+  // Map metadata from JSON — form field values override JSON values
   const temporal = (obj.temporal || {}) as Record<string, unknown>;
-  const effectiveDate = (obj.effective_date as string) || (temporal.effective_from as string) || (obj.effectiveDate as string) || (obj.signing_date as string) || new Date().toISOString().split("T")[0];
-  const issuedDate = (obj.signing_date as string) || (obj.issuedDate as string) || effectiveDate;
-  const slug = (obj.slug as string) || slugify(title, year);
 
-  // Validate minimum required
+  const title = fTitle || str(obj.title);
+  const canonicalId = fCanonicalId || str(obj.document_id) || str(obj.canonicalId);
+  const documentNumber = fDocumentNumber || str(obj.document_number) || str(obj.documentNumber);
+  const rawDocType = fDocumentType || str(obj.document_type) || str(obj.documentType);
+  const documentType = DOC_TYPE_MAP[rawDocType] || rawDocType;
+  const issuingBody = fIssuingBody || str(obj.issuing_authority) || str(obj.issuingBody);
+  const year = fYear || num(obj.year);
+
+  const effectiveDate =
+    fEffectiveDate ||
+    str(obj.effective_date) ||
+    str(temporal.effective_from) ||
+    str(obj.effectiveDate) ||
+    str(obj.signing_date) ||
+    new Date().toISOString().split("T")[0];
+  const issuedDate =
+    fIssuedDate ||
+    str(obj.signing_date) || str(obj.issuedDate) || effectiveDate;
+  const slug = fSlug || str(obj.slug) || slugify(title, year);
+  const status = fStatus || "active";
+
+  // Validate required fields
   const missing: string[] = [];
   if (!title) missing.push("title");
-  if (!canonicalId) missing.push("document_id");
-  if (!documentNumber) missing.push("document_number");
+  if (!canonicalId) missing.push("document_id / canonicalId");
+  if (!documentNumber) missing.push("document_number / documentNumber");
   if (!documentType) missing.push(`document_type (got "${rawDocType}")`);
-  if (!issuingBody) missing.push("issuing_authority");
+  if (!issuingBody) missing.push("issuing_authority / issuingBody");
   if (!year) missing.push("year");
-
   if (missing.length > 0) {
-    return NextResponse.json({ error: `Missing fields: ${missing.join(", ")}` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Missing fields: ${missing.join(", ")}` },
+      { status: 400 },
+    );
   }
 
-  // Collect articles from chapters → sections → articles hierarchy, or flat articles
-  interface ArtData { number: number; title: string | null; content: string; chapter: string | null; section: string | null; clauses: ClData[] }
-  interface ClData { number: number; content: string; points: PtData[] }
-  interface PtData { letter: string; content: string }
-
+  // Extract articles from chapters hierarchy and/or flat articles array
   const articles: ArtData[] = [];
 
-  function extractArticle(art: Record<string, unknown>, chapter: string | null, section: string | null) {
-    const num = art.number ?? art.articleNumber;
-    if (num === undefined || num === null) return;
-    const articleNumber = typeof num === "number" ? num : parseInt(String(num), 10);
+  function extractArticle(
+    art: Record<string, unknown>,
+    chapter: string | null,
+    section: string | null,
+  ) {
+    const raw = art.number ?? art.articleNumber;
+    if (raw === undefined || raw === null) return;
+    const articleNumber =
+      typeof raw === "number" ? raw : parseInt(String(raw), 10);
     if (isNaN(articleNumber)) return;
 
     const clauses: ClData[] = [];
-    for (const cl of (Array.isArray(art.clauses) ? art.clauses : [])) {
+    for (const cl of asArray(art.clauses)) {
       const c = cl as Record<string, unknown>;
-      const cNum = c.number ?? c.clauseNumber;
-      if (cNum === undefined || cNum === null) continue;
-      const clauseNumber = typeof cNum === "number" ? cNum : parseInt(String(cNum), 10);
+      const cRaw = c.number ?? c.clauseNumber;
+      if (cRaw === undefined || cRaw === null) continue;
+      const clauseNumber =
+        typeof cRaw === "number" ? cRaw : parseInt(String(cRaw), 10);
       if (isNaN(clauseNumber)) continue;
 
       const points: PtData[] = [];
-      for (const pt of (Array.isArray(c.points) ? c.points : [])) {
+      for (const pt of asArray(c.points)) {
         const p = pt as Record<string, unknown>;
-        const pNum = p.number ?? p.pointLetter;
-        if (pNum === undefined || pNum === null) continue;
+        const pRaw = p.number ?? p.pointLetter;
+        if (pRaw === undefined || pRaw === null) continue;
         points.push({
-          letter: String(pNum).charAt(0).toLowerCase(),
-          content: (p.text_clean as string) || (p.text_raw as string) || (p.content as string) || "",
+          letter: String(pRaw).charAt(0).toLowerCase(),
+          content: str(p.text_clean) || str(p.text_raw) || str(p.content),
         });
       }
 
       clauses.push({
         number: clauseNumber,
-        content: (c.text_clean as string) || (c.text_raw as string) || (c.content as string) || "",
+        content: str(c.text_clean) || str(c.text_raw) || str(c.content),
         points,
       });
     }
 
     articles.push({
       number: articleNumber,
-      title: (art.title as string) || (art.text_clean as string) || null,
-      content: (art.text_clean as string) || (art.text_raw as string) || (art.content as string) || "",
+      title: str(art.title) || str(art.text_clean) || null,
+      content: str(art.text_clean) || str(art.text_raw) || str(art.content),
       chapter,
       section,
       clauses,
     });
   }
 
-  // From chapters hierarchy
-  for (const ch of (Array.isArray(obj.chapters) ? obj.chapters : [])) {
+  // From chapters → sections → articles hierarchy
+  for (const ch of asArray(obj.chapters)) {
     const chapter = ch as Record<string, unknown>;
-    const chLabel = chapter.title ? `Chương ${chapter.number || ""}: ${chapter.title}` : null;
+    const chLabel = chapter.title
+      ? `Chương ${chapter.number || ""}: ${chapter.title}`
+      : null;
 
-    for (const art of (Array.isArray(chapter.articles) ? chapter.articles : []))
+    for (const art of asArray(chapter.articles))
       extractArticle(art as Record<string, unknown>, chLabel, null);
 
-    for (const sec of (Array.isArray(chapter.sections) ? chapter.sections : [])) {
+    for (const sec of asArray(chapter.sections)) {
       const section = sec as Record<string, unknown>;
-      const secLabel = section.title ? `Mục ${section.number || ""}: ${section.title}` : null;
-      for (const art of (Array.isArray(section.articles) ? section.articles : []))
+      const secLabel = section.title
+        ? `Mục ${section.number || ""}: ${section.title}`
+        : null;
+      for (const art of asArray(section.articles))
         extractArticle(art as Record<string, unknown>, chLabel, secLabel);
     }
   }
 
   // From flat articles array
-  for (const art of (Array.isArray(obj.articles) ? obj.articles : []))
+  for (const art of asArray(obj.articles))
     extractArticle(art as Record<string, unknown>, null, null);
 
   articles.sort((a, b) => a.number - b.number);
 
-  // Save to DB (upsert: update existing document if canonicalId matches)
+  // Save to DB: delete-then-create strategy
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Delete existing content: points → clauses → articles (explicit order)
-      await tx.point.deleteMany({
-        where: { clause: { article: { document: { canonicalId } } } },
-      });
-      await tx.clause.deleteMany({
-        where: { article: { document: { canonicalId } } },
-      });
-      await tx.article.deleteMany({
-        where: { document: { canonicalId } },
-      });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        // If document already exists, delete it entirely.
+        // DB-level ON DELETE CASCADE removes all Articles → Clauses → Points.
+        const existing = await tx.legalDocument.findUnique({
+          where: { canonicalId },
+          select: { id: true },
+        });
+        if (existing) {
+          await tx.legalDocument.delete({ where: { id: existing.id } });
+        }
 
-      const docData = {
-        title,
-        documentNumber,
-        documentType: documentType as "luat" | "nghi_dinh" | "thong_tu" | "quyet_dinh",
-        issuingBody,
-        issuedDate: new Date(issuedDate),
-        effectiveDate: new Date(effectiveDate),
-        slug,
-        year,
-      };
-
-      const legalDoc = await tx.legalDocument.upsert({
-        where: { canonicalId },
-        update: docData,
-        create: { ...docData, canonicalId, status: "active" },
-      });
-
-      for (const art of articles) {
-        const artCid = `${canonicalId}_D${art.number}`;
-        const article = await tx.article.create({
+        // Create fresh document with all nested data
+        const legalDoc = await tx.legalDocument.create({
           data: {
-            canonicalId: artCid,
-            documentId: legalDoc.id,
-            articleNumber: art.number,
-            title: art.title,
-            content: art.content,
-            chapter: art.chapter,
-            section: art.section,
+            canonicalId,
+            title,
+            documentNumber,
+            documentType: documentType as
+              | "luat"
+              | "nghi_dinh"
+              | "thong_tu"
+              | "quyet_dinh",
+            issuingBody,
+            issuedDate: new Date(issuedDate),
+            effectiveDate: new Date(effectiveDate),
+            slug,
+            year,
+            status: status as "active" | "amended" | "repealed",
           },
         });
 
-        for (const cl of art.clauses) {
-          const clCid = `${artCid}_K${cl.number}`;
-          const clause = await tx.clause.create({
+        // Create articles, clauses, points
+        for (const art of articles) {
+          const artCid = `${canonicalId}_D${art.number}`;
+          const article = await tx.article.create({
             data: {
-              canonicalId: clCid,
-              articleId: article.id,
-              clauseNumber: cl.number,
-              content: cl.content,
+              canonicalId: artCid,
+              documentId: legalDoc.id,
+              articleNumber: art.number,
+              title: art.title,
+              content: art.content,
+              chapter: art.chapter,
+              section: art.section,
             },
           });
 
-          for (const pt of cl.points) {
-            await tx.point.create({
+          for (const cl of art.clauses) {
+            const clCid = `${artCid}_K${cl.number}`;
+            const clause = await tx.clause.create({
               data: {
-                canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
-                clauseId: clause.id,
-                pointLetter: pt.letter,
-                content: pt.content,
+                canonicalId: clCid,
+                articleId: article.id,
+                clauseNumber: cl.number,
+                content: cl.content,
               },
             });
+
+            for (const pt of cl.points) {
+              await tx.point.create({
+                data: {
+                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
+                  clauseId: clause.id,
+                  pointLetter: pt.letter,
+                  content: pt.content,
+                },
+              });
+            }
           }
         }
-      }
 
-      return { ...legalDoc, _counts: { articles: articles.length } };
-    }, { timeout: 30000 });
+        return legalDoc;
+      },
+      { timeout: 60000 },
+    );
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(
+      {
+        id: result.id,
+        canonicalId: result.canonicalId,
+        title: result.title,
+        articleCount: articles.length,
+      },
+      { status: 201 },
+    );
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
-      const target = (e.meta?.target as string[])?.join(", ") || "unknown field";
-      return NextResponse.json(
-        { error: `Duplicate: ${target}. Document with this ID or slug may already exist.` },
-        { status: 409 }
-      );
-    }
     console.error("Upload error:", e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to save" },
-      { status: 500 }
+      { error: e instanceof Error ? e.message : "Failed to save document" },
+      { status: 500 },
     );
   }
+}
+
+// --- helpers ---
+
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
+}
+
+function num(v: unknown): number {
+  return typeof v === "number" ? v : 0;
+}
+
+function asArray(v: unknown): unknown[] {
+  return Array.isArray(v) ? v : [];
 }
 
 function slugify(title: string, year: number): string {
