@@ -9,7 +9,7 @@ export default function Header() {
             LCVN
           </span>
           <span className="hidden sm:inline ml-2 text-xs text-gray-400 font-normal">
-            Legal Compliance in Vietnam
+            Legal Changes in Vietnam
           </span>
         </Link>
 
