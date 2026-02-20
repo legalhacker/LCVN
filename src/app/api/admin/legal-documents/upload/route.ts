@@ -132,7 +132,7 @@ async function handleSave(req: Request) {
       }
 
       return legalDoc;
-    });
+    }, { timeout: 30000 });
 
     return NextResponse.json(result, { status: 201 });
   } catch (e) {
@@ -143,6 +143,10 @@ async function handleSave(req: Request) {
         { status: 409 }
       );
     }
-    throw e;
+    console.error("Upload save error:", e);
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Failed to save document" },
+      { status: 500 }
+    );
   }
 }
