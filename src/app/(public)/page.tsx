@@ -139,15 +139,17 @@ export default async function HomePage() {
 
       <div className="flex">
         <div className="flex-1 min-w-0 p-4 lg:p-6">
-          <div className="max-w-3xl mx-auto space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             <RegulatoryFeed
               items={feedItems}
               fields={fields.map((f) => f.name)}
+              maxItems={10}
             />
 
             <EffectiveDocuments
               documents={effectiveDocs.map(serializeDoc)}
               todayDocuments={todayDocs.map(serializeDoc)}
+              maxItems={10}
             />
           </div>
         </div>

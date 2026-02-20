@@ -45,9 +45,11 @@ function formatDate(iso: string): string {
 export default function EffectiveDocuments({
   documents,
   todayDocuments,
+  maxItems,
 }: {
   documents: DocItem[];
   todayDocuments: DocItem[];
+  maxItems?: number;
 }) {
   const allTypes = Object.keys(DOC_TYPE_LABELS);
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -79,10 +81,13 @@ export default function EffectiveDocuments({
     setDropdownOpen(false);
   }
 
-  const filtered =
+  const allFiltered =
     appliedTypes.size === 0
       ? documents
       : documents.filter((d) => appliedTypes.has(d.documentType));
+
+  const filtered = maxItems ? allFiltered.slice(0, maxItems) : allFiltered;
+  const hasMore = maxItems ? allFiltered.length > maxItems : false;
 
   const triggerLabel =
     selectedTypes.size === 0
@@ -183,22 +188,34 @@ export default function EffectiveDocuments({
 
       {/* Document list — headline-only view */}
       {filtered.length > 0 ? (
-        filtered.map((doc, idx) => {
-          const docPage = SLUG_TO_DOC_PAGE[doc.slug];
-          return (
-            <article
-              key={doc.id}
-              className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
-            >
-              <Link
-                href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
-                className="text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+        <>
+          {filtered.map((doc, idx) => {
+            const docPage = SLUG_TO_DOC_PAGE[doc.slug];
+            return (
+              <article
+                key={doc.id}
+                className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
               >
-                {doc.title}
+                <Link
+                  href={docPage ? `/document/${docPage}` : `/search?q=${encodeURIComponent(doc.title)}`}
+                  className="text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+                >
+                  {doc.title}
+                </Link>
+              </article>
+            );
+          })}
+          {hasMore && (
+            <div className="pt-3">
+              <Link
+                href="/van-ban-moi-co-hieu-luc"
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Xem thêm →
               </Link>
-            </article>
-          );
-        })
+            </div>
+          )}
+        </>
       ) : (
         <div className="py-12 text-center">
           <p className="text-sm text-gray-400">

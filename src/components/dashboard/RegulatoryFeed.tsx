@@ -22,7 +22,7 @@ const DEFAULT_FIELDS = [
   "Tài chính – ngân hàng",
 ];
 
-export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; fields?: string[] }) {
+export default function RegulatoryFeed({ items, fields, maxItems }: { items: FeedItem[]; fields?: string[]; maxItems?: number }) {
   const FIELDS = fields && fields.length > 0 ? fields : DEFAULT_FIELDS;
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [appliedFields, setAppliedFields] = useState<Set<string>>(new Set());
@@ -57,7 +57,7 @@ export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; f
     setDropdownOpen(false);
   }
 
-  const filtered =
+  const allFiltered =
     appliedFields.size === 0
       ? items
       : items.filter((item) => {
@@ -66,6 +66,9 @@ export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; f
           }
           return false;
         });
+
+  const filtered = maxItems ? allFiltered.slice(0, maxItems) : allFiltered;
+  const hasMore = maxItems ? allFiltered.length > maxItems : false;
 
   // Label for the dropdown trigger
   const triggerLabel =
@@ -148,20 +151,32 @@ export default function RegulatoryFeed({ items, fields }: { items: FeedItem[]; f
 
       {/* Feed items — headline-only view */}
       {filtered.length > 0 ? (
-        filtered.map((item, idx) => (
-          <article
-            key={item.slug}
-            className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
-          >
-            <Link
-              href={`/thay-doi/${item.slug}`}
-              className="flex items-start gap-1.5 text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+        <>
+          {filtered.map((item, idx) => (
+            <article
+              key={item.slug}
+              className={`py-3 ${idx !== filtered.length - 1 ? "border-b border-gray-100" : ""}`}
             >
-              <span className="shrink-0">⚡</span>
-              <span>{item.title}</span>
-            </Link>
-          </article>
-        ))
+              <Link
+                href={`/thay-doi/${item.slug}`}
+                className="flex items-start gap-1.5 text-[15px] font-semibold text-gray-900 leading-snug hover:text-gray-600 transition-colors"
+              >
+                <span className="shrink-0">⚡</span>
+                <span>{item.title}</span>
+              </Link>
+            </article>
+          ))}
+          {hasMore && (
+            <div className="pt-3">
+              <Link
+                href="/van-ban-moi-co-hieu-luc"
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Xem thêm →
+              </Link>
+            </div>
+          )}
+        </>
       ) : (
         <div className="py-12 text-center">
           <p className="text-sm text-gray-400">
