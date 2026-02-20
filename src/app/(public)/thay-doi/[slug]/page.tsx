@@ -30,7 +30,10 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
   const { slug } = await params;
   const change = await prisma.regulatoryChange.findUnique({
     where: { slug },
-    include: { fields: { include: { field: true } } },
+    include: {
+      fields: { include: { field: true } },
+      legalDocument: { select: { title: true, slug: true, documentType: true } },
+    },
   });
 
   if (!change || change.status !== "published") notFound();
@@ -206,6 +209,26 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
               </div>
             )}
           </section>
+
+          {/* Linked Legal Document */}
+          {change.legalDocument && (
+            <section className="mb-8">
+              <h2 className="text-sm font-semibold text-gray-800 mb-3">
+                Văn bản liên quan
+              </h2>
+              <Link
+                href={`/doc/${change.legalDocument.slug}`}
+                className="block rounded-lg border border-gray-200 p-4 hover:border-gray-300 hover:bg-gray-50/50 transition-colors"
+              >
+                <p className="text-sm font-medium text-gray-900">
+                  {change.legalDocument.title}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Xem toàn văn nội dung &rarr;
+                </p>
+              </Link>
+            </section>
+          )}
 
           {/* Back */}
           <div className="pt-4 border-t border-gray-100">
