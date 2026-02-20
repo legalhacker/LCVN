@@ -126,23 +126,45 @@ export async function POST(req: Request) {
 
   articles.sort((a, b) => a.number - b.number);
 
-  // Save to DB
+  // Save to DB (upsert: update existing document if canonicalId matches)
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const legalDoc = await tx.legalDocument.create({
-        data: {
-          canonicalId,
-          title,
-          documentNumber,
-          documentType: documentType as "luat" | "nghi_dinh" | "thong_tu" | "quyet_dinh",
-          issuingBody,
-          issuedDate: new Date(issuedDate),
-          effectiveDate: new Date(effectiveDate),
-          slug,
-          year,
-          status: "active",
-        },
-      });
+      // Check if document already exists
+      const existing = await tx.legalDocument.findUnique({ where: { canonicalId } });
+
+      let legalDoc;
+      if (existing) {
+        // Delete old articles (cascades to clauses → points)
+        await tx.article.deleteMany({ where: { documentId: existing.id } });
+        legalDoc = await tx.legalDocument.update({
+          where: { canonicalId },
+          data: {
+            title,
+            documentNumber,
+            documentType: documentType as "luat" | "nghi_dinh" | "thong_tu" | "quyet_dinh",
+            issuingBody,
+            issuedDate: new Date(issuedDate),
+            effectiveDate: new Date(effectiveDate),
+            slug,
+            year,
+          },
+        });
+      } else {
+        legalDoc = await tx.legalDocument.create({
+          data: {
+            canonicalId,
+            title,
+            documentNumber,
+            documentType: documentType as "luat" | "nghi_dinh" | "thong_tu" | "quyet_dinh",
+            issuingBody,
+            issuedDate: new Date(issuedDate),
+            effectiveDate: new Date(effectiveDate),
+            slug,
+            year,
+            status: "active",
+          },
+        });
+      }
 
       for (const art of articles) {
         const artCid = `${canonicalId}_D${art.number}`;
@@ -182,7 +204,7 @@ export async function POST(req: Request) {
         }
       }
 
-      return { ...legalDoc, _counts: { articles: articles.length } };
+      return { ...legalDoc, _updated: !!existing, _counts: { articles: articles.length } };
     }, { timeout: 30000 });
 
     return NextResponse.json(result, { status: 201 });
