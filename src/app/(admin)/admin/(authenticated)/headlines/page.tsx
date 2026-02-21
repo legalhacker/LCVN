@@ -257,6 +257,7 @@ export default function HeadlinesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [extractError, setExtractError] = useState("");
 
   // Edit form state
   const [editData, setEditData] = useState({ title: "", subtitle: "" });
@@ -325,6 +326,7 @@ export default function HeadlinesPage() {
   const handleExtract = async () => {
     if (!docFile) return;
     setExtracting(true);
+    setExtractError("");
     const fd = new FormData();
     fd.append("file", docFile);
     const res = await fetch("/api/admin/extract-text", { method: "POST", body: fd });
@@ -334,7 +336,8 @@ export default function HeadlinesPage() {
       setDocContent(data.text);
       setDocFileType(data.fileType);
     } else {
-      alert("Failed to extract text from file.");
+      const data = await res.json().catch(() => ({}));
+      setExtractError(data.error || "Không thể trích xuất văn bản từ file.");
     }
   };
 
@@ -344,7 +347,7 @@ export default function HeadlinesPage() {
     setSource(""); setEffectiveDate(""); setSelectedFieldIds([]); setAffectedPartiesText("");
     setChangeHeadline(""); setSummary(""); setAnalysisSummary(""); setComparisonBefore("");
     setComparisonAfter(""); setTimeline(""); setContext(""); setPracticalImpactText("");
-    setHeadlineTitle(""); setHeadlineSubtitle(""); setSubmitError("");
+    setHeadlineTitle(""); setHeadlineSubtitle(""); setSubmitError(""); setExtractError("");
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -503,7 +506,7 @@ export default function HeadlinesPage() {
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
-                    onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                    onChange={(e) => { setDocFile(e.target.files?.[0] || null); setExtractError(""); }}
                     className="w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gray-700 hover:file:bg-gray-200"
                   />
                 </div>
@@ -516,6 +519,9 @@ export default function HeadlinesPage() {
                   {extracting ? "Đang trích xuất…" : "Trích xuất ▶"}
                 </button>
               </div>
+              {extractError && (
+                <p className="text-sm text-red-600">{extractError}</p>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Tiêu đề văn bản</label>
@@ -546,7 +552,6 @@ export default function HeadlinesPage() {
                   className={inputCls}
                   rows={6}
                   placeholder="Nội dung được trích xuất từ file hoặc nhập thủ công…"
-                  readOnly={!!docFile && !!docContent}
                 />
               </div>
             </div>
