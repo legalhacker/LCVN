@@ -38,14 +38,6 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error }, { status });
 
   const body = await req.json();
-  const { regulatoryChangeId, title, subtitle, position } = body;
-
-  if (!regulatoryChangeId || !title) {
-    return NextResponse.json(
-      { error: "regulatoryChangeId and title are required" },
-      { status: 400 }
-    );
-  }
 
   // Look up user by email to get the actual DB UUID
   const user = await prisma.user.findUnique({
@@ -55,6 +47,96 @@ export async function POST(req: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 401 });
+  }
+
+  // Mode A: all-in-one (document + change + headline)
+  if (body.change) {
+    const { title, subtitle, position, document, change } = body;
+
+    if (!title || !change.slug || !change.lawName || !change.changeType ||
+        !change.legalBasis || !change.source || !change.effectiveDate ||
+        !change.headline || !change.summary) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Create legal document if provided
+      let legalDocumentId: string | null = null;
+      if (document && document.slug && document.title && document.content) {
+        const doc = await tx.legalDocument.create({
+          data: {
+            slug: document.slug,
+            title: document.title,
+            content: document.content,
+            fileType: document.fileType || null,
+          },
+        });
+        legalDocumentId = doc.id;
+      }
+
+      // Create regulatory change
+      const regulatoryChange = await tx.regulatoryChange.create({
+        data: {
+          slug: change.slug,
+          lawName: change.lawName,
+          changeType: change.changeType,
+          legalBasis: change.legalBasis,
+          source: change.source,
+          effectiveDate: new Date(change.effectiveDate),
+          headline: change.headline,
+          summary: change.summary,
+          practicalImpact: change.practicalImpact || [],
+          affectedParties: change.affectedParties || [],
+          analysisSummary: change.analysisSummary || null,
+          comparisonBefore: change.comparisonBefore || null,
+          comparisonAfter: change.comparisonAfter || null,
+          timeline: change.timeline || null,
+          context: change.context || null,
+          status: "published",
+          legalDocumentId,
+          fields: change.fieldIds?.length
+            ? {
+                create: change.fieldIds.map((fieldId: string) => ({ fieldId })),
+              }
+            : undefined,
+        },
+      });
+
+      // Create homepage headline
+      const headline = await tx.homepageHeadline.create({
+        data: {
+          regulatoryChangeId: regulatoryChange.id,
+          title,
+          subtitle: subtitle || null,
+          position: position ?? 0,
+          status: "draft",
+          createdById: user.id,
+        },
+        include: {
+          regulatoryChange: {
+            select: { id: true, headline: true, slug: true, status: true },
+          },
+          createdBy: { select: { id: true, name: true, email: true } },
+        },
+      });
+
+      return headline;
+    });
+
+    return NextResponse.json(result, { status: 201 });
+  }
+
+  // Mode B: legacy (link to existing regulatory change)
+  const { regulatoryChangeId, title, subtitle, position } = body;
+
+  if (!regulatoryChangeId || !title) {
+    return NextResponse.json(
+      { error: "regulatoryChangeId and title are required" },
+      { status: 400 }
+    );
   }
 
   const headline = await prisma.homepageHeadline.create({

@@ -32,6 +32,7 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
     where: { slug },
     include: {
       fields: { include: { field: true } },
+      legalDocument: true,
     },
   });
 
@@ -140,10 +141,10 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
           {/* Divider */}
           <hr className="border-gray-100 mb-8" />
 
-          {/* Tier 2: Comparison & Context */}
+          {/* Tier 2: Comparison */}
           <section className="mb-8">
             <h2 className="text-sm font-semibold text-gray-800 mb-4">
-              So sánh & bối cảnh
+              So sánh
             </h2>
 
             {/* Before / After */}
@@ -174,7 +175,7 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
 
             {/* Timeline */}
             {change.timeline && (
-              <div className="rounded-lg border border-gray-200 p-4 mb-4">
+              <div className="rounded-lg border border-gray-200 p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
                   Timeline hiệu lực
                 </p>
@@ -183,22 +184,25 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
                 </p>
               </div>
             )}
-
-            {/* Context */}
-            {change.context && (
-              <div className="rounded-lg border border-gray-200 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">
-                  Bối cảnh quốc tế
-                </p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  {change.context}
-                </p>
-              </div>
-            )}
           </section>
 
+          {/* Legal document link */}
+          {change.legalDocument && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                Văn bản được phân tích
+              </p>
+              <Link
+                href={`/van-ban/${change.legalDocument.slug}`}
+                className="text-sm font-medium text-gray-700 hover:text-gray-900 underline underline-offset-2 transition-colors"
+              >
+                {change.legalDocument.title}
+              </Link>
+            </div>
+          )}
+
           {/* Back */}
-          <div className="pt-4 border-t border-gray-100">
+          <div className="mt-6 pt-4 border-t border-gray-100">
             <Link
               href="/"
               className="text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors"
@@ -211,6 +215,7 @@ export default async function ChangeDetailPage({ params }: { params: Promise<{ s
       <ContextualInsightPanel
         fields={tags}
         relatedChanges={relatedChanges}
+        context={change.context}
       />
     </div>
   );

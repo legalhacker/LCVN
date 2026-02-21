@@ -36,7 +36,7 @@ test.describe("Change detail page", () => {
     await page.goto("/thay-doi/shtt-ai-ownership");
     await expect(page.locator("h1")).toContainText("[Luật SHTT]");
     await expect(page.getByRole("heading", { name: "Phân tích thay đổi" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "So sánh & bối cảnh" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "So sánh" })).toBeVisible();
   });
 
   test("shows before/after comparison", async ({ page }) => {

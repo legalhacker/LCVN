@@ -3,11 +3,13 @@ import Link from "next/link";
 interface ContextualInsightProps {
   fields: string[];
   relatedChanges: { headline: string; slug: string }[];
+  context?: string | null;
 }
 
 export default function ContextualInsightPanel({
   fields,
   relatedChanges,
+  context,
 }: ContextualInsightProps) {
   return (
     <aside className="hidden xl:block w-72 shrink-0 border-l border-gray-200 bg-gray-50/50 overflow-y-auto">
@@ -55,6 +57,16 @@ export default function ContextualInsightPanel({
                 </Link>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Context (Insight) */}
+        {context && (
+          <section>
+            <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              Bối cảnh quốc tế
+            </h3>
+            <p className="text-xs text-gray-600 leading-relaxed">{context}</p>
           </section>
         )}
       </div>

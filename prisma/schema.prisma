@@ -68,6 +68,19 @@ model Field {
   @@map("fields")
 }
 
+model LegalDocument {
+  id                String             @id @default(uuid()) @db.Uuid
+  slug              String             @unique @db.VarChar(255)
+  title             String             @db.Text
+  content           String             @db.Text
+  fileType          String?            @map("file_type") @db.VarChar(50)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  regulatoryChanges RegulatoryChange[]
+
+  @@map("legal_documents")
+}
+
 model RegulatoryChange {
   id               String                 @id @default(uuid()) @db.Uuid
   slug             String                 @unique @db.VarChar(255)
@@ -86,6 +99,8 @@ model RegulatoryChange {
   timeline         String?                @db.Text
   context          String?                @db.Text
   status           ChangeStatus           @default(draft)
+  legalDocumentId  String?                @map("legal_document_id") @db.Uuid
+  legalDocument    LegalDocument?         @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
   fields              RegulatoryChangeField[]
   homepageHeadlines   HomepageHeadline[]
   createdAt           DateTime               @default(now()) @map("created_at")
