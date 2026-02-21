@@ -110,21 +110,31 @@ export async function POST(req: Request) {
     if (isNaN(articleNumber)) return;
 
     const clauses: ClData[] = [];
+    const seenClauseNumbers = new Set<number>();
     for (const cl of asArray(art.clauses)) {
       const c = cl as Record<string, unknown>;
       const cRaw = c.number ?? c.clauseNumber;
       if (cRaw === undefined || cRaw === null) continue;
-      const clauseNumber =
+      let clauseNumber =
         typeof cRaw === "number" ? cRaw : parseInt(String(cRaw), 10);
       if (isNaN(clauseNumber)) continue;
+      // Renumber duplicates (PDF parsing artefact) to next available number
+      if (seenClauseNumbers.has(clauseNumber)) {
+        clauseNumber = Math.max(...seenClauseNumbers) + 1;
+      }
+      seenClauseNumbers.add(clauseNumber);
 
       const points: PtData[] = [];
+      const seenPointLetters = new Set<string>();
       for (const pt of asArray(c.points)) {
         const p = pt as Record<string, unknown>;
         const pRaw = p.number ?? p.pointLetter;
         if (pRaw === undefined || pRaw === null) continue;
+        let letter = String(pRaw).charAt(0).toLowerCase();
+        if (seenPointLetters.has(letter)) continue; // skip duplicate points
+        seenPointLetters.add(letter);
         points.push({
-          letter: String(pRaw).charAt(0).toLowerCase(),
+          letter,
           content: str(p.text_clean) || str(p.text_raw) || str(p.content),
         });
       }
@@ -221,11 +231,8 @@ export async function POST(req: Request) {
             },
           });
 
-          for (let ci = 0; ci < art.clauses.length; ci++) {
-            const cl = art.clauses[ci];
-            // Use index suffix to guarantee uniqueness when the JSON contains
-            // duplicate clause numbers within an article (parsing artefact).
-            const clCid = `${artCid}_K${cl.number}_${ci}`;
+          for (const cl of art.clauses) {
+            const clCid = `${artCid}_K${cl.number}`;
             const clause = await tx.clause.create({
               data: {
                 canonicalId: clCid,
@@ -235,11 +242,10 @@ export async function POST(req: Request) {
               },
             });
 
-            for (let pi = 0; pi < cl.points.length; pi++) {
-              const pt = cl.points[pi];
+            for (const pt of cl.points) {
               await tx.point.create({
                 data: {
-                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}_${pi}`,
+                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
                   clauseId: clause.id,
                   pointLetter: pt.letter,
                   content: pt.content,
