@@ -182,83 +182,65 @@ export async function POST(req: Request) {
 
   articles.sort((a, b) => a.number - b.number);
 
-  // Save to DB: delete-then-create strategy
+  // Save to DB: delete existing then create fresh with all nested data in one call
   try {
-    const result = await prisma.$transaction(
-      async (tx) => {
-        // If document already exists, delete it entirely.
-        // DB-level ON DELETE CASCADE removes all Articles → Clauses → Points.
-        const existing = await tx.legalDocument.findUnique({
-          where: { canonicalId },
-          select: { id: true },
-        });
-        if (existing) {
-          await tx.legalDocument.delete({ where: { id: existing.id } });
-        }
+    // Delete existing document outside transaction to free locks before re-creating
+    const existing = await prisma.legalDocument.findUnique({
+      where: { canonicalId },
+      select: { id: true },
+    });
+    if (existing) {
+      await prisma.legalDocument.delete({ where: { id: existing.id } });
+    }
 
-        // Create fresh document with all nested data
-        const legalDoc = await tx.legalDocument.create({
-          data: {
-            canonicalId,
-            title,
-            documentNumber,
-            documentType: documentType as
-              | "luat"
-              | "nghi_dinh"
-              | "thong_tu"
-              | "quyet_dinh",
-            issuingBody,
-            issuedDate: new Date(issuedDate),
-            effectiveDate: new Date(effectiveDate),
-            slug,
-            year,
-            status: status as "active" | "amended" | "repealed",
-          },
-        });
-
-        // Create articles, clauses, points
-        for (const art of articles) {
-          const artCid = `${canonicalId}_D${art.number}`;
-          const article = await tx.article.create({
-            data: {
+    const result = await prisma.legalDocument.create({
+      data: {
+        canonicalId,
+        title,
+        documentNumber,
+        documentType: documentType as
+          | "luat"
+          | "nghi_dinh"
+          | "thong_tu"
+          | "quyet_dinh",
+        issuingBody,
+        issuedDate: new Date(issuedDate),
+        effectiveDate: new Date(effectiveDate),
+        slug,
+        year,
+        status: status as "active" | "amended" | "repealed",
+        articles: {
+          create: articles.map((art) => {
+            const artCid = `${canonicalId}_D${art.number}`;
+            return {
               canonicalId: artCid,
-              documentId: legalDoc.id,
               articleNumber: art.number,
               title: art.title,
               content: art.content,
               chapter: art.chapter,
               section: art.section,
-            },
-          });
-
-          for (const cl of art.clauses) {
-            const clCid = `${artCid}_K${cl.number}`;
-            const clause = await tx.clause.create({
-              data: {
-                canonicalId: clCid,
-                articleId: article.id,
-                clauseNumber: cl.number,
-                content: cl.content,
+              clauses: {
+                create: art.clauses.map((cl) => {
+                  const clCid = `${artCid}_K${cl.number}`;
+                  return {
+                    canonicalId: clCid,
+                    clauseNumber: cl.number,
+                    content: cl.content,
+                    points: {
+                      create: cl.points.map((pt) => ({
+                        canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
+                        pointLetter: pt.letter,
+                        content: pt.content,
+                      })),
+                    },
+                  };
+                }),
               },
-            });
-
-            for (const pt of cl.points) {
-              await tx.point.create({
-                data: {
-                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
-                  clauseId: clause.id,
-                  pointLetter: pt.letter,
-                  content: pt.content,
-                },
-              });
-            }
-          }
-        }
-
-        return legalDoc;
+            };
+          }),
+        },
       },
-      { timeout: 60000 },
-    );
+    });
 
     return NextResponse.json(
       {
