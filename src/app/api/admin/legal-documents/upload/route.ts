@@ -184,14 +184,10 @@ export async function POST(req: Request) {
 
   // Save to DB: delete existing then create fresh with all nested data in one call
   try {
-    // Delete existing document outside transaction to free locks before re-creating
-    const existing = await prisma.legalDocument.findUnique({
-      where: { canonicalId },
-      select: { id: true },
+    // Delete any existing document matching canonicalId or slug to avoid unique conflicts
+    await prisma.legalDocument.deleteMany({
+      where: { OR: [{ canonicalId }, { slug }] },
     });
-    if (existing) {
-      await prisma.legalDocument.delete({ where: { id: existing.id } });
-    }
 
     const result = await prisma.legalDocument.create({
       data: {
