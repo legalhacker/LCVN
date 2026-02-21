@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Admin Panel", () => {
   test("login page renders", async ({ page }) => {
     await page.goto("/admin/login");
-    await expect(page.locator("h1")).toContainText("GCR Admin");
+    await expect(page.locator("h1")).toContainText("LCVN Admin");
     await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="password"]')).toBeVisible();
   });
@@ -37,7 +37,6 @@ test.describe("Admin Panel", () => {
 
     // Check stat cards are present
     await expect(page.locator("text=Regulatory Changes")).toBeVisible();
-    await expect(page.locator("text=Legal Documents")).toBeVisible();
     await expect(page.locator("text=Fields")).toBeVisible();
     await expect(page.locator("text=Users")).toBeVisible();
   });

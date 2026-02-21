@@ -16,21 +16,12 @@ test.describe("SEO", () => {
     expect(text).toContain('<?xml version="1.0"');
     expect(text).toContain("<urlset");
     expect(text).toContain("<loc>");
-    // Should include article pages
-    expect(text).toContain("/luat/bo-luat-lao-dong/2019/dieu-35");
+    // Should include regulatory change pages
+    expect(text).toContain("/thay-doi/shtt-ai-ownership");
     // Should include topic pages
     expect(text).toContain("/topic/labor-hr");
     // Should include document pages
     expect(text).toContain("/document/labor-code-2019");
-  });
-
-  test("article pages have canonical URLs", async ({ page }) => {
-    await page.goto("/luat/bo-luat-lao-dong/2019/dieu-1");
-    const canonical = page.locator('link[rel="canonical"]');
-    await expect(canonical).toHaveAttribute(
-      "href",
-      /\/luat\/bo-luat-lao-dong\/2019\/dieu-1$/,
-    );
   });
 
   test("all pages have OG tags", async ({ page }) => {

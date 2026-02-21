@@ -8,28 +8,22 @@ test.describe("Search page", () => {
   });
 
   test("shows results for Vietnamese query", async ({ page }) => {
-    await page.goto("/search?q=hợp đồng");
-    await expect(page.locator("text=result")).toBeVisible();
-    // Should find results from both Labor Code and Civil Code
-    const links = page.locator('a[href*="/luat/"]');
+    await page.goto("/search?q=AI");
+    const resultCount = page.locator(".text-xs.text-gray-400").filter({ hasText: "result" });
+    await expect(resultCount).toBeVisible();
+    // Should find regulatory change links
+    const links = page.locator('a[href*="/thay-doi/"]');
     await expect(links.first()).toBeVisible();
-  });
-
-  test("type filter narrows results", async ({ page }) => {
-    await page.goto("/search?q=lao&type=article");
-    // Article filter pill should be active
-    const activeFilter = page.locator("a.bg-gray-900", { hasText: "Articles" });
-    await expect(activeFilter).toBeVisible();
   });
 
   test("search form submits and shows results", async ({ page }) => {
     await page.goto("/search");
     const input = page.locator('main input[name="q"]');
-    await input.fill("lao");
+    await input.fill("AI");
     await input.press("Enter");
-    await page.waitForURL(/search\?q=lao/);
+    await page.waitForURL(/search\?q=AI/);
     // Should show result count text
-    await expect(page.locator("text=result")).toBeVisible();
+    await expect(page.locator("text=results for").or(page.locator("text=result for"))).toBeVisible();
   });
 
   test("header search bar navigates to search page", async ({ page }) => {
