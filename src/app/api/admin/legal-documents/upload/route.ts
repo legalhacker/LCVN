@@ -221,8 +221,11 @@ export async function POST(req: Request) {
             },
           });
 
-          for (const cl of art.clauses) {
-            const clCid = `${artCid}_K${cl.number}`;
+          for (let ci = 0; ci < art.clauses.length; ci++) {
+            const cl = art.clauses[ci];
+            // Use index suffix to guarantee uniqueness when the JSON contains
+            // duplicate clause numbers within an article (parsing artefact).
+            const clCid = `${artCid}_K${cl.number}_${ci}`;
             const clause = await tx.clause.create({
               data: {
                 canonicalId: clCid,
@@ -232,10 +235,11 @@ export async function POST(req: Request) {
               },
             });
 
-            for (const pt of cl.points) {
+            for (let pi = 0; pi < cl.points.length; pi++) {
+              const pt = cl.points[pi];
               await tx.point.create({
                 data: {
-                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}`,
+                  canonicalId: `${clCid}_${pt.letter.toUpperCase()}_${pi}`,
                   clauseId: clause.id,
                   pointLetter: pt.letter,
                   content: pt.content,
