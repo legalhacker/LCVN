@@ -21,19 +21,9 @@ interface NavSection {
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [activeHeadlineCount, setActiveHeadlineCount] = useState<number | null>(null);
   const [crawledPendingCount, setCrawledPendingCount] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/headlines?countOnly=true")
-      .then((res) => res.json())
-      .then((data) => {
-        if (typeof data.activeCount === "number") {
-          setActiveHeadlineCount(data.activeCount);
-        }
-      })
-      .catch(() => {});
-
     fetch("/api/admin/crawled-items?countOnly=true")
       .then((res) => res.json())
       .then((data) => {
@@ -63,20 +53,8 @@ export default function AdminSidebar() {
       ],
     },
     {
-      title: "TRANG CHỦ",
-      items: [
-        {
-          href: "/admin/headlines",
-          label: "Headlines",
-          icon: "📰",
-          badge: activeHeadlineCount ?? undefined,
-        },
-      ],
-    },
-    {
       title: "NỘI DUNG",
       items: [
-        { href: "/admin/regulatory-changes", label: "Thay đổi pháp luật", icon: "📋" },
         { href: "/admin/fields", label: "Lĩnh vực", icon: "🏷️" },
       ],
     },

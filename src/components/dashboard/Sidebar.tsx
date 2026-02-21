@@ -5,9 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 const navItems = [
   { label: "Trang chủ", href: "/", icon: "home" },
-  { label: "Dự thảo sắp có hiệu lực", href: "/van-ban-sap-co-hieu-luc", icon: "clock" },
-  { label: "Dữ liệu pháp luật", href: "/du-lieu-phap-luat", icon: "database" },
-  { label: "Biểu mẫu", href: "/?section=bieu-mau", icon: "form" },
+  { label: "Về chúng tôi", href: "/ve-chung-toi", icon: "info" },
 ];
 
 function NavIcon({ type }: { type: string }) {
@@ -47,6 +45,12 @@ function NavIcon({ type }: { type: string }) {
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+        </svg>
+      );
+    case "info":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
         </svg>
       );
     case "code":

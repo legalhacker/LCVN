@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import RegulatoryFeed from "@/components/dashboard/RegulatoryFeed";
+import DraftFeed from "@/components/dashboard/DraftFeed";
 import OverviewPanel from "@/components/dashboard/OverviewPanel";
 import { prisma } from "@/lib/prisma";
 
@@ -48,7 +49,7 @@ export default async function HomePage() {
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [headlines, fields, publishedChanges] = await Promise.all([
+  const [headlines, fields, publishedChanges, draftItems] = await Promise.all([
     prisma.homepageHeadline.findMany({
       where: { status: "active" },
       include: {
@@ -62,6 +63,19 @@ export default async function HomePage() {
     prisma.regulatoryChange.findMany({
       where: { status: "published" },
       include: { fields: { include: { field: true } } },
+    }),
+    prisma.crawledItem.findMany({
+      where: { isDraft: true, reviewStatus: "published" },
+      orderBy: { crawledAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        title: true,
+        sourceUrl: true,
+        legalFields: true,
+        expectedApprovalTime: true,
+        consultationEndDate: true,
+      },
     }),
   ]);
 
@@ -100,6 +114,17 @@ export default async function HomePage() {
     tags: h.regulatoryChange.fields.map((f) => f.field.name),
   }));
 
+  const draftFields = Array.from(
+    new Set(draftItems.flatMap((d) => d.legalFields))
+  ).sort();
+
+  const serializedDraftItems = draftItems.map((d) => ({
+    ...d,
+    consultationEndDate: d.consultationEndDate
+      ? d.consultationEndDate.toISOString()
+      : null,
+  }));
+
   return (
     <>
       <script
@@ -109,11 +134,18 @@ export default async function HomePage() {
 
       <div className="flex">
         <div className="flex-1 min-w-0 p-4 lg:p-6">
-          <RegulatoryFeed
-            items={feedItems}
-            fields={fields.map((f) => f.name)}
-            maxItems={10}
-          />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <RegulatoryFeed
+              items={feedItems}
+              fields={fields.map((f) => f.name)}
+              maxItems={10}
+            />
+            <DraftFeed
+              items={serializedDraftItems}
+              fields={draftFields}
+              maxItems={10}
+            />
+          </div>
         </div>
         <OverviewPanel stats={overviewStats} />
       </div>
