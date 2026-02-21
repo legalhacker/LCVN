@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
   // Mode A: all-in-one (document + change + headline)
   if (body.change) {
-    const { title, subtitle, position, document, change } = body;
+    const { title, subtitle, position, document, change, publishNow } = body;
 
     if (!title || !change.slug || !change.lawName || !change.changeType ||
         !change.legalBasis || !change.source || !change.effectiveDate ||
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
           title,
           subtitle: subtitle || null,
           position: position ?? 0,
-          status: "draft",
+          status: publishNow ? "active" : "draft",
           createdById: user.id,
         },
         include: {

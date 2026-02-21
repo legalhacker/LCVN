@@ -258,6 +258,7 @@ export default function HeadlinesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [extractError, setExtractError] = useState("");
+  const [publishNow, setPublishNow] = useState(false);
 
   // Edit form state
   const [editData, setEditData] = useState({ title: "", subtitle: "" });
@@ -347,7 +348,7 @@ export default function HeadlinesPage() {
     setSource(""); setEffectiveDate(""); setSelectedFieldIds([]); setAffectedPartiesText("");
     setChangeHeadline(""); setSummary(""); setAnalysisSummary(""); setComparisonBefore("");
     setComparisonAfter(""); setTimeline(""); setContext(""); setPracticalImpactText("");
-    setHeadlineTitle(""); setHeadlineSubtitle(""); setSubmitError(""); setExtractError("");
+    setHeadlineTitle(""); setHeadlineSubtitle(""); setSubmitError(""); setExtractError(""); setPublishNow(false);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -358,6 +359,7 @@ export default function HeadlinesPage() {
     const payload: Record<string, unknown> = {
       title: headlineTitle,
       subtitle: headlineSubtitle || undefined,
+      publishNow,
       change: {
         slug: changeSlug,
         lawName,
@@ -396,7 +398,7 @@ export default function HeadlinesPage() {
     if (res.ok) {
       setShowCreateForm(false);
       resetForm();
-      setActiveTab("draft");
+      setActiveTab(publishNow ? "active" : "draft");
       fetchHeadlines();
     } else {
       const data = await res.json();
@@ -682,13 +684,26 @@ export default function HeadlinesPage() {
               <p className="text-sm text-red-600">{submitError}</p>
             )}
 
+            <div className="flex items-center gap-2">
+              <input
+                id="publish-now"
+                type="checkbox"
+                checked={publishNow}
+                onChange={(e) => setPublishNow(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="publish-now" className="text-sm text-gray-700 cursor-pointer select-none">
+                Publish ngay (hiện lên trang chủ)
+              </label>
+            </div>
+
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={submitting}
                 className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? "Đang tạo…" : "Tạo Draft"}
+                {submitting ? "Đang tạo…" : publishNow ? "Tạo & Publish" : "Tạo Draft"}
               </button>
               <button
                 type="button"
