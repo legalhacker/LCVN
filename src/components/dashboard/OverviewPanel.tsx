@@ -1,6 +1,4 @@
 interface OverviewStats {
-  effectiveCount: number;
-  upcomingCount: number;
   changeCount: number;
   fieldCounts: { name: string; count: number }[];
   recentFieldCounts: { name: string; count: number }[];
@@ -19,14 +17,6 @@ export default function OverviewPanel({ stats }: { stats: OverviewStats }) {
 
         {/* Stat cards */}
         <div className="space-y-2.5">
-          <div className="rounded-lg bg-white border border-gray-200 p-3">
-            <p className="text-[10px] text-gray-400 mb-1">Văn bản có hiệu lực</p>
-            <p className="text-lg font-semibold text-gray-800">{stats.effectiveCount}</p>
-          </div>
-          <div className="rounded-lg bg-white border border-gray-200 p-3">
-            <p className="text-[10px] text-gray-400 mb-1">Sắp có hiệu lực</p>
-            <p className="text-lg font-semibold text-gray-800">{stats.upcomingCount}</p>
-          </div>
           <div className="rounded-lg bg-white border border-gray-200 p-3">
             <p className="text-[10px] text-gray-400 mb-1">Thay đổi đã công bố</p>
             <p className="text-lg font-semibold text-gray-800">{stats.changeCount}</p>

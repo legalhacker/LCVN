@@ -7,7 +7,7 @@ export async function GET() {
   if (error) return NextResponse.json({ error }, { status });
 
   const changes = await prisma.regulatoryChange.findMany({
-    include: { fields: { include: { field: true } }, legalDocument: true },
+    include: { fields: { include: { field: true } } },
     orderBy: { createdAt: "desc" },
   });
 

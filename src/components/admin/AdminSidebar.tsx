@@ -77,7 +77,6 @@ export default function AdminSidebar() {
       title: "NỘI DUNG",
       items: [
         { href: "/admin/regulatory-changes", label: "Thay đổi pháp luật", icon: "📋" },
-        { href: "/admin/legal-documents", label: "Văn bản quy phạm", icon: "📄" },
         { href: "/admin/fields", label: "Lĩnh vực", icon: "🏷️" },
       ],
     },

@@ -12,7 +12,7 @@ export async function GET(
   const { id } = await params;
   const change = await prisma.regulatoryChange.findUnique({
     where: { id },
-    include: { fields: { include: { field: true } }, legalDocument: true },
+    include: { fields: { include: { field: true } } },
   });
 
   if (!change) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -30,13 +30,6 @@ enum HeadlineStatus {
   archived
 }
 
-enum DocumentType {
-  luat
-  nghi_dinh
-  thong_tu
-  quyet_dinh
-}
-
 enum CrawledDocumentType {
   law
   amendment
@@ -49,27 +42,6 @@ enum CrawlReviewStatus {
   reviewed
   published
   rejected
-}
-
-enum DocumentStatus {
-  active
-  amended
-  repealed
-}
-
-enum EntityType {
-  document
-  article
-  clause
-  point
-}
-
-enum RelationshipType {
-  amended_by
-  replaces
-  related_to
-  references
-  implements
 }
 
 model User {
@@ -114,8 +86,6 @@ model RegulatoryChange {
   timeline         String?                @db.Text
   context          String?                @db.Text
   status           ChangeStatus           @default(draft)
-  legalDocumentId  String?                @map("legal_document_id") @db.Uuid
-  legalDocument    LegalDocument?         @relation(fields: [legalDocumentId], references: [id], onDelete: SetNull)
   fields              RegulatoryChangeField[]
   homepageHeadlines   HomepageHeadline[]
   createdAt           DateTime               @default(now()) @map("created_at")
@@ -132,104 +102,6 @@ model RegulatoryChangeField {
 
   @@id([regulatoryChangeId, fieldId])
   @@map("regulatory_change_fields")
-}
-
-model LegalDocument {
-  id             String         @id @default(uuid()) @db.Uuid
-  canonicalId    String         @unique @map("canonical_id") @db.VarChar(100)
-  title          String         @db.Text
-  documentNumber String         @map("document_number") @db.VarChar(50)
-  documentType   DocumentType   @map("document_type")
-  issuingBody    String         @map("issuing_body") @db.Text
-  issuedDate     DateTime       @map("issued_date") @db.Date
-  effectiveDate  DateTime       @map("effective_date") @db.Date
-  slug           String         @unique @db.VarChar(200)
-  year           Int
-  status         DocumentStatus @default(active)
-  articles          Article[]
-  regulatoryChanges RegulatoryChange[]
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-
-  @@map("legal_documents")
-}
-
-model Article {
-  id            String        @id @default(uuid()) @db.Uuid
-  canonicalId   String        @unique @map("canonical_id") @db.VarChar(100)
-  documentId    String        @map("document_id") @db.Uuid
-  articleNumber Int           @map("article_number")
-  title         String?       @db.Text
-  content       String        @db.Text
-  chapter       String?       @db.VarChar(100)
-  section       String?       @db.VarChar(100)
-  document      LegalDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  clauses       Clause[]
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  @@unique([documentId, articleNumber])
-  @@index([documentId])
-  @@map("articles")
-}
-
-model Clause {
-  id           String   @id @default(uuid()) @db.Uuid
-  canonicalId  String   @unique @map("canonical_id") @db.VarChar(100)
-  articleId    String   @map("article_id") @db.Uuid
-  clauseNumber Int      @map("clause_number")
-  content      String   @db.Text
-  article      Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  points       Point[]
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@unique([articleId, clauseNumber])
-  @@index([articleId])
-  @@map("clauses")
-}
-
-model Point {
-  id          String   @id @default(uuid()) @db.Uuid
-  canonicalId String   @unique @map("canonical_id") @db.VarChar(100)
-  clauseId    String   @map("clause_id") @db.Uuid
-  pointLetter String   @map("point_letter") @db.Char(1)
-  content     String   @db.Text
-  clause      Clause   @relation(fields: [clauseId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@unique([clauseId, pointLetter])
-  @@index([clauseId])
-  @@map("points")
-}
-
-model LegalRelationship {
-  id               String           @id @default(uuid()) @db.Uuid
-  sourceType       EntityType       @map("source_type")
-  sourceCanonicalId String          @map("source_canonical_id") @db.VarChar(100)
-  targetType       EntityType       @map("target_type")
-  targetCanonicalId String          @map("target_canonical_id") @db.VarChar(100)
-  relationshipType RelationshipType @map("relationship_type")
-  description      String?          @db.Text
-  effectiveDate    DateTime?        @map("effective_date") @db.Date
-  createdAt        DateTime         @default(now()) @map("created_at")
-
-  @@index([sourceCanonicalId, targetCanonicalId])
-  @@index([targetCanonicalId])
-  @@map("legal_relationships")
-}
-
-model LegalMetadata {
-  id                String     @id @default(uuid()) @db.Uuid
-  entityType        EntityType @map("entity_type")
-  entityCanonicalId String     @map("entity_canonical_id") @db.VarChar(100)
-  key               String     @db.VarChar(100)
-  value             String     @db.Text
-  createdAt         DateTime   @default(now()) @map("created_at")
-
-  @@index([entityCanonicalId])
-  @@map("legal_metadata")
 }
 
 model Member {

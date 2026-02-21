@@ -4,10 +4,9 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [changesCount, documentsCount, fieldsCount, usersCount, headlinesCount, activeHeadlines] =
+  const [changesCount, fieldsCount, usersCount, headlinesCount, activeHeadlines] =
     await Promise.all([
       prisma.regulatoryChange.count(),
-      prisma.legalDocument.count(),
       prisma.field.count(),
       prisma.user.count(),
       prisma.homepageHeadline.count(),
@@ -26,7 +25,6 @@ export default async function AdminDashboard() {
   const stats = [
     { label: "Headlines", value: headlinesCount, href: "/admin/headlines" },
     { label: "Regulatory Changes", value: changesCount, href: "/admin/regulatory-changes" },
-    { label: "Legal Documents", value: documentsCount, href: "/admin/legal-documents" },
     { label: "Fields", value: fieldsCount, href: "/admin/fields" },
     { label: "Users", value: usersCount, href: "/admin/users" },
   ];

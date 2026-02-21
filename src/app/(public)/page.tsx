@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import RegulatoryFeed from "@/components/dashboard/RegulatoryFeed";
-import EffectiveDocuments from "@/components/dashboard/EffectiveDocuments";
 import OverviewPanel from "@/components/dashboard/OverviewPanel";
 import { prisma } from "@/lib/prisma";
 
@@ -49,7 +48,7 @@ export default async function HomePage() {
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const [headlines, fields, effectiveDocs, upcomingCount, publishedChanges] = await Promise.all([
+  const [headlines, fields, publishedChanges] = await Promise.all([
     prisma.homepageHeadline.findMany({
       where: { status: "active" },
       include: {
@@ -60,52 +59,11 @@ export default async function HomePage() {
       orderBy: [{ pinned: "desc" }, { position: "asc" }],
     }),
     prisma.field.findMany({ orderBy: { name: "asc" } }),
-    prisma.legalDocument.findMany({
-      where: { effectiveDate: { lte: now } },
-      orderBy: { effectiveDate: "desc" },
-      include: {
-        regulatoryChanges: {
-          include: { fields: { include: { field: true } } },
-        },
-      },
-    }),
-    prisma.legalDocument.count({
-      where: { effectiveDate: { gt: now } },
-    }),
     prisma.regulatoryChange.findMany({
       where: { status: "published" },
       include: { fields: { include: { field: true } } },
     }),
   ]);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const todayDocs = effectiveDocs.filter(
-    (d) => d.effectiveDate >= today && d.effectiveDate < tomorrow
-  );
-
-  const serializeDoc = (d: (typeof effectiveDocs)[number]) => {
-    const fieldNames = new Set<string>();
-    for (const rc of d.regulatoryChanges) {
-      for (const rcf of rc.fields) {
-        fieldNames.add(rcf.field.name);
-      }
-    }
-    return {
-      id: d.id,
-      slug: d.slug,
-      title: d.title,
-      documentNumber: d.documentNumber,
-      issuingBody: d.issuingBody,
-      effectiveDate: d.effectiveDate.toISOString(),
-      status: d.status,
-      documentType: d.documentType,
-      tags: Array.from(fieldNames),
-    };
-  };
 
   // Compute field counts for overview panel
   const fieldCountMap = new Map<string, number>();
@@ -127,8 +85,6 @@ export default async function HomePage() {
     .sort((a, b) => b.count - a.count);
 
   const overviewStats = {
-    effectiveCount: effectiveDocs.length,
-    upcomingCount,
     changeCount: publishedChanges.length,
     fieldCounts,
     recentFieldCounts,
@@ -153,20 +109,11 @@ export default async function HomePage() {
 
       <div className="flex">
         <div className="flex-1 min-w-0 p-4 lg:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            <RegulatoryFeed
-              items={feedItems}
-              fields={fields.map((f) => f.name)}
-              maxItems={10}
-            />
-
-            <EffectiveDocuments
-              documents={effectiveDocs.map(serializeDoc)}
-              todayDocuments={todayDocs.map(serializeDoc)}
-              fields={fields.map((f) => f.name)}
-              maxItems={10}
-            />
-          </div>
+          <RegulatoryFeed
+            items={feedItems}
+            fields={fields.map((f) => f.name)}
+            maxItems={10}
+          />
         </div>
         <OverviewPanel stats={overviewStats} />
       </div>

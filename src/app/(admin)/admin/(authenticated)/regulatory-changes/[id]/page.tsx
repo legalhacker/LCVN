@@ -11,16 +11,12 @@ export default async function EditRegulatoryChangePage({
 }) {
   const { id } = await params;
 
-  const [change, fields, legalDocuments] = await Promise.all([
+  const [change, fields] = await Promise.all([
     prisma.regulatoryChange.findUnique({
       where: { id },
       include: { fields: { include: { field: true } } },
     }),
     prisma.field.findMany({ orderBy: { name: "asc" } }),
-    prisma.legalDocument.findMany({
-      select: { id: true, title: true },
-      orderBy: { title: "asc" },
-    }),
   ]);
 
   if (!change) notFound();
@@ -43,7 +39,6 @@ export default async function EditRegulatoryChangePage({
     timeline: change.timeline || "",
     context: change.context || "",
     status: change.status,
-    legalDocumentId: change.legalDocumentId || "",
     fieldIds: change.fields.map((f) => f.fieldId),
   };
 
@@ -53,7 +48,6 @@ export default async function EditRegulatoryChangePage({
       <RegulatoryChangeForm
         initialData={initialData}
         fields={fields}
-        legalDocuments={legalDocuments}
       />
     </div>
   );

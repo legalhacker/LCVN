@@ -65,25 +65,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // Article source pages from database
-  const documents = await prisma.legalDocument.findMany({
-    include: {
-      articles: {
-        orderBy: { articleNumber: "asc" },
-        select: { articleNumber: true },
-      },
-    },
-  });
-
-  for (const doc of documents) {
-    for (const article of doc.articles) {
-      entries.push({
-        url: `${BASE_URL}/luat/${doc.slug}/${doc.year}/dieu-${article.articleNumber}`,
-        changeFrequency: "yearly",
-        priority: 0.9,
-      });
-    }
-  }
-
   return entries;
 }

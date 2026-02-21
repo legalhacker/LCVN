@@ -3,20 +3,11 @@ import Link from "next/link";
 interface ContextualInsightProps {
   fields: string[];
   relatedChanges: { headline: string; slug: string }[];
-  relatedDocuments: { title: string; slug: string; documentType: string }[];
 }
-
-const docTypeLabels: Record<string, string> = {
-  luat: "Luật",
-  nghi_dinh: "Nghị định",
-  thong_tu: "Thông tư",
-  quyet_dinh: "Quyết định",
-};
 
 export default function ContextualInsightPanel({
   fields,
   relatedChanges,
-  relatedDocuments,
 }: ContextualInsightProps) {
   return (
     <aside className="hidden xl:block w-72 shrink-0 border-l border-gray-200 bg-gray-50/50 overflow-y-auto">
@@ -60,31 +51,6 @@ export default function ContextualInsightPanel({
                 >
                   <p className="text-xs font-medium text-gray-800 leading-snug line-clamp-2">
                     {c.headline}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Related documents */}
-        {relatedDocuments.length > 0 && (
-          <section>
-            <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
-              Văn bản liên quan
-            </h3>
-            <div className="space-y-2">
-              {relatedDocuments.map((d) => (
-                <Link
-                  key={d.slug}
-                  href={`/doc/${d.slug}`}
-                  className="block rounded-lg bg-white border border-gray-200 p-3 hover:border-gray-300 transition-colors"
-                >
-                  <p className="text-xs font-medium text-gray-800 leading-snug line-clamp-2">
-                    {d.title}
-                  </p>
-                  <p className="mt-1 text-[10px] text-gray-400">
-                    {docTypeLabels[d.documentType] || d.documentType}
                   </p>
                 </Link>
               ))}
