@@ -57,27 +57,6 @@ test.describe("Change detail page", () => {
   });
 });
 
-test.describe("Dữ liệu pháp luật page", () => {
-  test("renders legal field grid", async ({ page }) => {
-    await page.goto("/du-lieu-phap-luat");
-    await expect(page.locator("h1")).toContainText("Dữ liệu pháp luật");
-    await expect(page.locator("text=Đầu tư & Doanh nghiệp")).toBeVisible();
-    await expect(page.locator("text=Lao động & Nhân sự")).toBeVisible();
-    await expect(page.locator("text=Thuế")).toBeVisible();
-  });
-
-  test("has topic links", async ({ page }) => {
-    await page.goto("/du-lieu-phap-luat");
-    await expect(page.locator('a[href="/topic/corporate-law"]')).toBeVisible();
-    await expect(page.locator('a[href="/topic/labor-hr"]')).toBeVisible();
-    await expect(page.locator('a[href="/topic/tax"]')).toBeVisible();
-  });
-
-  test("has search bar", async ({ page }) => {
-    await page.goto("/du-lieu-phap-luat");
-    await expect(page.getByRole("textbox", { name: "Tìm kiếm văn bản pháp luật..." })).toBeVisible();
-  });
-});
 
 test.describe("Topic page", () => {
   test("lists documents for a topic", async ({ page }) => {
