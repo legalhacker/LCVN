@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCenter,
@@ -249,6 +250,7 @@ const sectionTitleCls = "text-xs font-semibold uppercase tracking-wider text-gra
 export default function HeadlinesPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "admin";
+  const router = useRouter();
 
   const [headlines, setHeadlines] = useState<Headline[]>([]);
   const [loading, setLoading] = useState(true);
@@ -388,21 +390,29 @@ export default function HeadlinesPage() {
       payload.document = { slug: docSlug, title: docTitle, content: docContent, fileType: docFileType || undefined };
     }
 
-    const res = await fetch("/api/admin/headlines", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/admin/headlines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    setSubmitting(false);
-    if (res.ok) {
-      setShowCreateForm(false);
-      resetForm();
-      setActiveTab(publishNow ? "active" : "draft");
-      fetchHeadlines();
-    } else {
-      const data = await res.json();
-      setSubmitError(data.error || "Failed to create headline.");
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setShowCreateForm(false);
+        const wasPublishNow = publishNow;
+        resetForm();
+        setActiveTab(wasPublishNow ? "active" : "draft");
+        fetchHeadlines();
+        router.refresh(); // clear Next.js router cache so dashboard/homepage show fresh data
+      } else {
+        setSubmitError(data.error || `Lỗi ${res.status}: không thể tạo headline.`);
+      }
+    } catch (err) {
+      setSubmitError(`Lỗi kết nối: ${err instanceof Error ? err.message : "unknown error"}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 

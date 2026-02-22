@@ -62,7 +62,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    let result;
+    try {
+      result = await prisma.$transaction(async (tx) => {
       // Create legal document if provided
       let legalDocumentId: string | null = null;
       if (document && document.slug && document.title && document.content) {
@@ -123,8 +125,13 @@ export async function POST(req: Request) {
         },
       });
 
-      return headline;
-    });
+        return headline;
+      });
+    } catch (err) {
+      console.error("[headlines POST] transaction error:", err);
+      const msg = err instanceof Error ? err.message : "Database error";
+      return NextResponse.json({ error: msg }, { status: 500 });
+    }
 
     return NextResponse.json(result, { status: 201 });
   }
