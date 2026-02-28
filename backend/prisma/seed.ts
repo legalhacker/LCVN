@@ -26,7 +26,7 @@ async function main() {
   // ============================================================================
   // USERS
   // ============================================================================
-  const passwordHash = await bcrypt.hash('password123', 12);
+  const passwordHash = await bcrypt.hash('Leonk37.', 12);
 
   const adminUser = await prisma.user.create({
     data: {
