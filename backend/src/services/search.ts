@@ -484,9 +484,135 @@ const EMPTY_SEARCH_RESPONSE = (params: GlobalSearchParams): SearchResponse => ({
   searchMode: params.mode || 'hybrid',
 });
 
+async function prismaFallbackSearch(params: GlobalSearchParams): Promise<SearchResponse> {
+  const { query, documentType, status, issuingBody, page = 1, limit = 20 } = params;
+  const skip = (page - 1) * limit;
+
+  const docWhere: Record<string, unknown> = {};
+  if (query) {
+    docWhere.OR = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { documentNumber: { contains: query, mode: 'insensitive' } },
+      { summary: { contains: query, mode: 'insensitive' } },
+    ];
+  }
+  if (documentType) docWhere.documentType = documentType;
+  if (status) docWhere.status = status;
+  if (issuingBody) docWhere.issuingBody = { contains: issuingBody, mode: 'insensitive' };
+
+  const [docs, totalDocuments] = await Promise.all([
+    prisma.document.findMany({
+      where: docWhere,
+      skip,
+      take: limit,
+      orderBy: { issuedDate: 'desc' },
+      include: { _count: { select: { articles: true } } },
+    }),
+    prisma.document.count({ where: docWhere }),
+  ]);
+
+  const documents: DocumentSearchResult[] = docs.map(d => ({
+    id: d.id,
+    titleSlug: d.titleSlug,
+    documentNumber: d.documentNumber,
+    title: d.title,
+    documentType: d.documentType,
+    issuingBody: d.issuingBody,
+    status: d.status,
+    snippet: d.summary ? d.summary.slice(0, 200) : '',
+    effectiveDate: d.effectiveDate ? d.effectiveDate.toISOString() : null,
+    expirationDate: d.expirationDate ? d.expirationDate.toISOString() : null,
+    replacedBy: null,
+    articleCount: d._count.articles,
+  }));
+
+  // Article search — only when query present
+  let articles: ArticleSearchResult[] = [];
+  let totalArticles = 0;
+  if (query) {
+    const artWhere: Record<string, unknown> = {
+      OR: [
+        { title: { contains: query, mode: 'insensitive' } },
+        { content: { contains: query, mode: 'insensitive' } },
+      ],
+    };
+    if (documentType || status) {
+      artWhere.document = {
+        ...(documentType && { documentType }),
+        ...(status && { status }),
+      };
+    }
+
+    const [artRows, artTotal] = await Promise.all([
+      prisma.article.findMany({
+        where: artWhere,
+        skip,
+        take: limit,
+        orderBy: { orderIndex: 'asc' },
+        include: {
+          document: {
+            select: {
+              id: true, titleSlug: true, documentNumber: true, title: true,
+              documentType: true, status: true, effectiveDate: true, expirationDate: true,
+            },
+          },
+        },
+      }),
+      prisma.article.count({ where: artWhere }),
+    ]);
+
+    totalArticles = artTotal;
+    articles = artRows.map(a => {
+      const snippet = a.content
+        ? a.content.slice(0, 200).replace(/\n/g, ' ')
+        : '';
+      return {
+        id: a.id,
+        articleId: a.articleId,
+        articleNumber: a.articleNumber,
+        title: a.title || null,
+        documentId: a.document.id,
+        documentSlug: a.document.titleSlug,
+        documentNumber: a.document.documentNumber,
+        documentTitle: a.document.title,
+        documentType: a.document.documentType,
+        chapterTitle: a.chapterTitle || null,
+        snippet,
+        legalStatus: a.document.status as ArticleSearchResult['legalStatus'],
+        effectiveDate: a.document.effectiveDate ? a.document.effectiveDate.toISOString() : null,
+        expirationDate: a.document.expirationDate ? a.document.expirationDate.toISOString() : null,
+        replacedBy: null,
+        score: 1,
+        legalTopics: (a.legalTopics as string[]) || [],
+        articleType: null,
+        subjectMatter: null,
+        importance: 3,
+      };
+    });
+  }
+
+  return {
+    query,
+    totalArticles,
+    totalDocuments,
+    articles,
+    documents,
+    filters: {
+      documentType: documentType || null,
+      status: status || null,
+      issuingBody: issuingBody || null,
+      legalTopics: null,
+      articleType: null,
+      minImportance: null,
+    },
+    pagination: { page, limit, hasMore: totalDocuments > page * limit || totalArticles > page * limit },
+    searchMode: 'exact',
+  };
+}
+
 export async function globalSearch(params: GlobalSearchParams): Promise<SearchResponse> {
   if (!isMeilisearchConfigured()) {
-    return EMPTY_SEARCH_RESPONSE(params);
+    return prismaFallbackSearch(params);
   }
   const {
     query,
