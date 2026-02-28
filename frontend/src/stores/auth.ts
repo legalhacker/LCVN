@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
         set({ currentWorkspaceId: workspaceId }),
     }),
     {
-      name: 'vietlaw-auth',
+      name: 'lcvn-auth',
       partialize: (state) => ({
         user: state.user,
         token: state.token,

@@ -11,10 +11,10 @@ export function Footer() {
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold">V</span>
+                <span className="text-white font-bold">L</span>
               </div>
               <span className="font-semibold text-lg text-neutral-800">
-                Viet<span className="text-primary-500">Law</span>
+                LC<span className="text-primary-500">VN</span>
               </span>
             </Link>
             <p className="text-neutral-500 text-sm max-w-sm leading-relaxed">
@@ -27,7 +27,7 @@ export function Footer() {
             <h4 className="font-semibold text-neutral-800 mb-4">Khám phá</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/phap-luat-sme" className="text-neutral-500 hover:text-primary-600 text-sm transition-colors">
+                <Link href="/" className="text-neutral-500 hover:text-primary-600 text-sm transition-colors">
                   Pháp luật SME
                 </Link>
               </li>
@@ -54,8 +54,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:hello@vietlaw.vn" className="text-neutral-500 hover:text-primary-600 text-sm transition-colors">
-                  hello@vietlaw.vn
+                <a href="mailto:hello@lcvn.vn" className="text-neutral-500 hover:text-primary-600 text-sm transition-colors">
+                  hello@lcvn.vn
                 </a>
               </li>
             </ul>
@@ -65,7 +65,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="border-t border-neutral-100 mt-10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-neutral-400 text-sm">
-            © 2024 VietLaw. Thông tin chỉ mang tính tham khảo.
+            © 2024 LCVN. Thông tin chỉ mang tính tham khảo.
           </p>
           <div className="flex items-center space-x-4 text-sm text-neutral-400">
             <span>Made with ♡ for Vietnamese businesses</span>

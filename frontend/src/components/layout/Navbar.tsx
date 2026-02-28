@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
 const navLinks = [
-  { href: '/phap-luat-sme', label: 'Trang chủ' },
+  { href: '/', label: 'Trang chủ' },
   { href: '/thay-doi-moi', label: 'Thay đổi luật mới' },
   { href: '/about', label: 'Giới thiệu' },
 ];
@@ -64,10 +64,10 @@ export function Navbar() {
                 justifyContent: 'center',
               }}
             >
-              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '18px' }}>V</span>
+              <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '18px' }}>L</span>
             </div>
             <span style={{ fontWeight: 600, fontSize: '20px', color: '#262626' }}>
-              Viet<span style={{ color: '#0891b2' }}>Law</span>
+              LC<span style={{ color: '#0891b2' }}>VN</span>
             </span>
           </Link>
 
@@ -81,7 +81,7 @@ export function Navbar() {
             className="desktop-nav"
           >
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = link.href === '/' ? pathname === '/' : pathname === link.href;
               return (
                 <Link
                   key={link.href}
@@ -144,7 +144,7 @@ export function Navbar() {
             }}
           >
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = link.href === '/' ? pathname === '/' : pathname === link.href;
               return (
                 <Link
                   key={link.href}

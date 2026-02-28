@@ -25,7 +25,7 @@ export default function AboutPage() {
             Giới thiệu
           </h1>
           <p style={{ fontSize: '16px', color: '#525252' }}>
-            Về VietLaw và cách liên hệ với chúng tôi
+            Về LCVN và cách liên hệ với chúng tôi
           </p>
         </div>
 
@@ -55,18 +55,18 @@ export default function AboutPage() {
                 marginBottom: '20px',
               }}
             >
-              Về VietLaw
+              Về LCVN
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ fontSize: '15px', color: '#525252', lineHeight: 1.7 }}>
-                VietLaw là nền tảng tra cứu pháp luật hiện đại, được thiết kế dành riêng cho
+                LCVN là nền tảng tra cứu pháp luật hiện đại, được thiết kế dành riêng cho
                 doanh nghiệp và cá nhân tại Việt Nam.
               </p>
 
               <p style={{ fontSize: '15px', color: '#525252', lineHeight: 1.7 }}>
                 Chúng tôi tin rằng việc tiếp cận thông tin pháp luật không nên là đặc quyền
-                của riêng ai. VietLaw giúp bạn tìm kiếm, tra cứu và hiểu các văn bản pháp luật
+                của riêng ai. LCVN giúp bạn tìm kiếm, tra cứu và hiểu các văn bản pháp luật
                 một cách dễ dàng và nhanh chóng.
               </p>
 
@@ -79,7 +79,7 @@ export default function AboutPage() {
                     marginBottom: '12px',
                   }}
                 >
-                  Tại sao chọn VietLaw?
+                  Tại sao chọn LCVN?
                 </h3>
                 <ul
                   style={{
@@ -165,7 +165,7 @@ export default function AboutPage() {
                 <div>
                   <p style={{ fontSize: '13px', color: '#737373', marginBottom: '4px' }}>Email</p>
                   <a
-                    href="mailto:hello@vietlaw.vn"
+                    href="mailto:hello@lcvn.vn"
                     style={{
                       fontSize: '15px',
                       color: '#171717',
@@ -175,7 +175,7 @@ export default function AboutPage() {
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#0891b2')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#171717')}
                   >
-                    hello@vietlaw.vn
+                    hello@lcvn.vn
                   </a>
                 </div>
               </div>

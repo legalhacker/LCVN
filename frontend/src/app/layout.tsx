@@ -4,7 +4,7 @@ import { Providers } from './providers';
 import { Navbar } from '@/components/layout/Navbar';
 
 export const metadata: Metadata = {
-  title: 'VietLaw - Tra cứu pháp luật dễ dàng',
+  title: 'LCVN - Tra cứu pháp luật dễ dàng',
   description: 'Nền tảng tra cứu pháp luật hiện đại dành cho doanh nghiệp Việt Nam',
 };
 
