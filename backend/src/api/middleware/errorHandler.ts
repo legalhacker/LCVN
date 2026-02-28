@@ -45,8 +45,19 @@ export const errorHandler = (
 
   // Prisma errors
   if (err.name === 'PrismaClientKnownRequestError') {
+    const prismaErr = err as Error & { code?: string; meta?: { target?: string[] } };
+    // P2002 = unique constraint violation
+    if (prismaErr.code === 'P2002') {
+      const fields = prismaErr.meta?.target?.join(', ') || 'unknown field';
+      return res.status(409).json({
+        error: `Đã tồn tại văn bản với ${fields} này`,
+        code: 'UNIQUE_CONSTRAINT',
+        fields: prismaErr.meta?.target,
+      });
+    }
     return res.status(400).json({
       error: 'Database operation failed',
+      code: prismaErr.code,
     });
   }
 
