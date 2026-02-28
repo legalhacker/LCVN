@@ -4,8 +4,8 @@ dotenv.config();
 
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
-  nodeEnv: process.env.NODE_ENV || 'development',
-  isDev: process.env.NODE_ENV !== 'production',
+  nodeEnv: (process.env.NODE_ENV || 'development').trim(),
+  isDev: (process.env.NODE_ENV || '').trim() !== 'production',
 
   jwt: {
     secret: process.env.JWT_SECRET || 'dev-secret-key',
