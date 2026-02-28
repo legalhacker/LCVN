@@ -190,15 +190,19 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
       }
     }
 
-    // Replace existing articles for this document
-    await prisma.article.deleteMany({ where: { documentId: req.params.id } });
-
     const slug = doc.titleSlug;
+
+    // Deduplicate by article_number (last entry wins) to avoid articleId conflicts
+    const seen = new Map<number, { article_number: number; title?: string; content: string }>();
+    for (const a of articles) {
+      seen.set(a.article_number, a);
+    }
+    const deduped = Array.from(seen.values());
 
     // Storage layer: map ingest fields → Article schema
     // content      = plain text (preserved for full-text search)
     // contentHtml  = HTML for user-facing rendering (never show raw JSON)
-    const articlesData = articles.map((a: { article_number: number; title?: string; content: string }, idx: number) => {
+    const articlesData = deduped.map((a, idx) => {
       const contentHtml = a.content
         .split('\n')
         .map((line: string) => line.trim())
@@ -219,7 +223,11 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
       };
     });
 
-    await prisma.article.createMany({ data: articlesData });
+    // Replace existing articles atomically
+    await prisma.$transaction([
+      prisma.article.deleteMany({ where: { documentId: req.params.id } }),
+      prisma.article.createMany({ data: articlesData }),
+    ]);
 
     res.json({ success: true, articleCount: articlesData.length });
   } catch (error) {
