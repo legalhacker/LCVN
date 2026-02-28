@@ -48,6 +48,11 @@ export function createAdminApi(token: string) {
       fetchAdmin(`/api/admin/documents/${id}`, opts({ method: 'PUT', body: JSON.stringify(data) })),
     deleteDocument: (id: string) =>
       fetchAdmin(`/api/admin/documents/${id}`, opts({ method: 'DELETE' })),
+    // Ingest articles from a parsed JSON upload.
+    // Called after createDocument(); stores articles as first-class Article records.
+    ingestJsonArticles: (id: string, articles: Array<{ article_number: number; title?: string; content: string }>) =>
+      fetchAdmin(`/api/admin/documents/${id}/json-articles`, opts({ method: 'POST', body: JSON.stringify({ articles }) })),
+
     uploadDocument: (id: string, file: File) => {
       const formData = new FormData();
       formData.append('file', file);

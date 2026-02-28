@@ -161,6 +161,72 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response, next) =>
   }
 });
 
+// POST /api/admin/documents/:id/json-articles
+// Ingest layer: accepts parsed article data from JSON upload and stores as Article records.
+// This is called after the document metadata has been saved.
+// Input:  { articles: [{ article_number, title?, content }] }
+// Output: { success, articleCount }
+// NOTE: Replaces all existing articles for the document.
+router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Response, next) => {
+  try {
+    const { articles } = req.body;
+
+    if (!Array.isArray(articles) || articles.length === 0) {
+      res.status(400).json({ error: 'articles must be a non-empty array' });
+      return;
+    }
+
+    const doc = await prisma.document.findUnique({ where: { id: req.params.id } });
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    // Validate minimal article shape
+    for (const a of articles) {
+      if (typeof a.article_number !== 'number' || typeof a.content !== 'string') {
+        res.status(400).json({ error: 'Each article requires article_number (number) and content (string)' });
+        return;
+      }
+    }
+
+    // Replace existing articles for this document
+    await prisma.article.deleteMany({ where: { documentId: req.params.id } });
+
+    const slug = doc.titleSlug;
+
+    // Storage layer: map ingest fields → Article schema
+    // content      = plain text (preserved for full-text search)
+    // contentHtml  = HTML for user-facing rendering (never show raw JSON)
+    const articlesData = articles.map((a: { article_number: number; title?: string; content: string }, idx: number) => {
+      const contentHtml = a.content
+        .split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0)
+        .map((line: string) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
+        .join('');
+
+      return {
+        documentId: req.params.id,
+        articleNumber: String(a.article_number),
+        articleId: `${slug}:${a.article_number}`,
+        title: a.title || '',
+        content: a.content,
+        contentHtml,
+        orderIndex: idx,
+        keywords: [],
+        legalTopics: [],
+      };
+    });
+
+    await prisma.article.createMany({ data: articlesData });
+
+    res.json({ success: true, articleCount: articlesData.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/admin/documents/:id/upload
 router.post('/:id/upload', requireAdmin, upload.single('file'), async (req: Request, res: Response, next) => {
   try {
