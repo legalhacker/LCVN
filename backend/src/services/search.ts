@@ -15,6 +15,10 @@ const client = new MeiliSearch({
   apiKey: config.meilisearch.apiKey,
 });
 
+// Check if Meilisearch is configured
+const isMeilisearchConfigured = () =>
+  config.meilisearch.host !== 'http://localhost:7700';
+
 // Index names
 const DOCUMENTS_INDEX = 'documents';
 const ARTICLES_INDEX = 'articles';
@@ -189,6 +193,11 @@ export interface SearchResponse {
 // ============================================================================
 
 export async function initializeSearchIndexes(): Promise<void> {
+  if (!isMeilisearchConfigured()) {
+    console.log('Meilisearch not configured — skipping search index initialization');
+    return;
+  }
+  try {
   console.log('Initializing search indexes...');
 
   // Documents index
@@ -286,6 +295,9 @@ export async function initializeSearchIndexes(): Promise<void> {
   });
 
   console.log('Search indexes initialized with Vietnamese legal synonyms');
+  } catch (err) {
+    console.warn('Failed to initialize search indexes (Meilisearch unavailable):', err);
+  }
 }
 
 // ============================================================================
@@ -293,6 +305,10 @@ export async function initializeSearchIndexes(): Promise<void> {
 // ============================================================================
 
 export async function syncDocumentsToSearch(): Promise<void> {
+  if (!isMeilisearchConfigured()) {
+    console.log('Meilisearch not configured — skipping document sync');
+    return;
+  }
   console.log('Syncing documents to search index...');
 
   const documents = await prisma.document.findMany({
@@ -337,12 +353,20 @@ export async function syncDocumentsToSearch(): Promise<void> {
     };
   });
 
-  const index = client.index(DOCUMENTS_INDEX);
-  await index.addDocuments(indexedDocs, { primaryKey: 'id' });
-  console.log(`Synced ${indexedDocs.length} documents to search index`);
+  try {
+    const index = client.index(DOCUMENTS_INDEX);
+    await index.addDocuments(indexedDocs, { primaryKey: 'id' });
+    console.log(`Synced ${indexedDocs.length} documents to search index`);
+  } catch (err) {
+    console.warn('Failed to sync documents to search index:', err);
+  }
 }
 
 export async function syncArticlesToSearch(): Promise<void> {
+  if (!isMeilisearchConfigured()) {
+    console.log('Meilisearch not configured — skipping article sync');
+    return;
+  }
   console.log('Syncing articles to search index...');
 
   const articles = await prisma.article.findMany({
@@ -403,9 +427,13 @@ export async function syncArticlesToSearch(): Promise<void> {
     };
   });
 
-  const index = client.index(ARTICLES_INDEX);
-  await index.addDocuments(indexedArticles, { primaryKey: 'id' });
-  console.log(`Synced ${indexedArticles.length} articles to search index`);
+  try {
+    const index = client.index(ARTICLES_INDEX);
+    await index.addDocuments(indexedArticles, { primaryKey: 'id' });
+    console.log(`Synced ${indexedArticles.length} articles to search index`);
+  } catch (err) {
+    console.warn('Failed to sync articles to search index:', err);
+  }
 }
 
 // ============================================================================
@@ -438,7 +466,28 @@ export interface InDocumentSearchParams {
 // GLOBAL SEARCH - Primary search function
 // ============================================================================
 
+const EMPTY_SEARCH_RESPONSE = (params: GlobalSearchParams): SearchResponse => ({
+  query: params.query,
+  totalArticles: 0,
+  totalDocuments: 0,
+  articles: [],
+  documents: [],
+  filters: {
+    documentType: params.documentType || null,
+    status: params.status || null,
+    issuingBody: params.issuingBody || null,
+    legalTopics: params.legalTopics || null,
+    articleType: params.articleType || null,
+    minImportance: params.minImportance || null,
+  },
+  pagination: { page: params.page || 1, limit: params.limit || 20, hasMore: false },
+  searchMode: params.mode || 'hybrid',
+});
+
 export async function globalSearch(params: GlobalSearchParams): Promise<SearchResponse> {
+  if (!isMeilisearchConfigured()) {
+    return EMPTY_SEARCH_RESPONSE(params);
+  }
   const {
     query,
     documentType,
@@ -505,6 +554,7 @@ export async function globalSearch(params: GlobalSearchParams): Promise<SearchRe
     documentFilters.push(`effectiveDate <= ${dateTo.getTime()}`);
   }
 
+  try {
   // Search articles (PRIMARY results)
   const articlesIndex = client.index(ARTICLES_INDEX);
   const articleSearchOptions: Record<string, unknown> = {
@@ -625,6 +675,10 @@ export async function globalSearch(params: GlobalSearchParams): Promise<SearchRe
     },
     searchMode: mode,
   };
+  } catch (err) {
+    console.warn('Search failed (Meilisearch unavailable):', err);
+    return EMPTY_SEARCH_RESPONSE(params);
+  }
 }
 
 // ============================================================================
@@ -634,6 +688,11 @@ export async function globalSearch(params: GlobalSearchParams): Promise<SearchRe
 export async function inDocumentSearch(params: InDocumentSearchParams) {
   const { query, documentId, mode } = params;
 
+  if (!isMeilisearchConfigured()) {
+    return { hits: [], totalHits: 0, mode, query };
+  }
+
+  try {
   const articlesIndex = client.index(ARTICLES_INDEX);
 
   const searchOptions: Record<string, unknown> = {
@@ -676,6 +735,10 @@ export async function inDocumentSearch(params: InDocumentSearchParams) {
     mode,
     query: searchQuery,
   };
+  } catch (err) {
+    console.warn('In-document search failed (Meilisearch unavailable):', err);
+    return { hits: [], totalHits: 0, mode, query };
+  }
 }
 
 // ============================================================================
@@ -687,6 +750,11 @@ export async function getSearchSuggestions(query: string, limit: number = 5) {
     return { suggestions: [] };
   }
 
+  if (!isMeilisearchConfigured()) {
+    return { suggestions: [] };
+  }
+
+  try {
   // Search for matching document titles
   const documentsIndex = client.index(DOCUMENTS_INDEX);
   const docResults = await documentsIndex.search(query, {
@@ -735,6 +803,10 @@ export async function getSearchSuggestions(query: string, limit: number = 5) {
       })),
     ].slice(0, limit * 2),
   };
+  } catch (err) {
+    console.warn('Search suggestions failed (Meilisearch unavailable):', err);
+    return { suggestions: [] };
+  }
 }
 
 // ============================================================================
@@ -910,6 +982,7 @@ async function logSearch(query: string, resultCount: number, mode: string): Prom
 // ============================================================================
 
 export async function indexDocument(documentId: string): Promise<void> {
+  if (!isMeilisearchConfigured()) return;
   const document = await prisma.document.findUnique({
     where: { id: documentId },
     include: {
@@ -950,11 +1023,16 @@ export async function indexDocument(documentId: string): Promise<void> {
     replacedByDocumentNumber: replacement?.documentNumber || null,
   };
 
-  const index = client.index(DOCUMENTS_INDEX);
-  await index.addDocuments([indexedDoc], { primaryKey: 'id' });
+  try {
+    const index = client.index(DOCUMENTS_INDEX);
+    await index.addDocuments([indexedDoc], { primaryKey: 'id' });
+  } catch (err) {
+    console.warn('Failed to index document:', err);
+  }
 }
 
 export async function indexArticlesForDocument(documentId: string): Promise<void> {
+  if (!isMeilisearchConfigured()) return;
   const articles = await prisma.article.findMany({
     where: { documentId },
     include: {
@@ -1013,24 +1091,33 @@ export async function indexArticlesForDocument(documentId: string): Promise<void
     importance: article.importance || 1,
   }));
 
-  const index = client.index(ARTICLES_INDEX);
-  await index.addDocuments(indexedArticles, { primaryKey: 'id' });
+  try {
+    const index = client.index(ARTICLES_INDEX);
+    await index.addDocuments(indexedArticles, { primaryKey: 'id' });
+  } catch (err) {
+    console.warn('Failed to index articles:', err);
+  }
 }
 
 export async function removeDocumentFromIndex(documentId: string): Promise<void> {
-  // Remove from documents index
-  const documentsIndex = client.index(DOCUMENTS_INDEX);
-  await documentsIndex.deleteDocument(documentId);
+  if (!isMeilisearchConfigured()) return;
+  try {
+    // Remove from documents index
+    const documentsIndex = client.index(DOCUMENTS_INDEX);
+    await documentsIndex.deleteDocument(documentId);
 
-  // Remove all articles for this document
-  const articles = await prisma.article.findMany({
-    where: { documentId },
-    select: { id: true },
-  });
+    // Remove all articles for this document
+    const articles = await prisma.article.findMany({
+      where: { documentId },
+      select: { id: true },
+    });
 
-  if (articles.length > 0) {
-    const articlesIndex = client.index(ARTICLES_INDEX);
-    await articlesIndex.deleteDocuments(articles.map(a => a.id));
+    if (articles.length > 0) {
+      const articlesIndex = client.index(ARTICLES_INDEX);
+      await articlesIndex.deleteDocuments(articles.map(a => a.id));
+    }
+  } catch (err) {
+    console.warn('Failed to remove document from index:', err);
   }
 }
 
