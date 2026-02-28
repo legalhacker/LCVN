@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && node -e \"const{execSync:e}=require('child_process');e(process.env.DB_RESET==='1'?'npx prisma migrate reset --force --skip-seed':'npx prisma migrate deploy',{stdio:'inherit'})\"",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
@@ -17,7 +18,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^5.10.0",
+    "@prisma/client": "^6.19.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.1",
@@ -35,7 +36,7 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.11.10",
-    "prisma": "^5.10.0",
+    "prisma": "^6.19.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.2"
