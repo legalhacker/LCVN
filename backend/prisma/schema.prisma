@@ -27,6 +27,19 @@ enum DocumentType {
   DISPATCH      // Công văn
 }
 
+enum NormativeType {
+  MANDATORY
+  PROHIBITION
+  CONDITION
+  PROCEDURE
+}
+
+enum ConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
 enum DocumentStatus {
   DRAFT              // Dự thảo
   EFFECTIVE          // Đang có hiệu lực
@@ -60,6 +73,14 @@ model Document {
   // Metadata
   keywords          String[]                // Từ khóa
   summary           String?        @db.Text // Tóm tắt nội dung
+
+  // AI-optimized metadata
+  jurisdiction       String   @default("viet_nam") @db.VarChar(50)
+  sourceOrigin       String?  @map("source_origin") @db.VarChar(255)
+  sourceUrl          String?  @map("source_url") @db.VarChar(500)
+  applicableEntities String[] @map("applicable_entities")
+  legalDomains       String[] @map("legal_domains")
+  legalSummary       String?  @map("legal_summary") @db.Text
 
   // Hierarchy (for amendments/replacements)
   replacesId        String?
@@ -151,6 +172,12 @@ model Article {
 
   // Practical importance flag
   hasPracticalReferences Boolean @default(false)
+
+  // AI metadata
+  normativeType     NormativeType?  @map("normative_type")
+  complianceActions String?         @map("compliance_actions") @db.Text
+  penaltyReference  Boolean         @default(false) @map("penalty_reference")
+  confidenceLevel   ConfidenceLevel @default(HIGH) @map("confidence_level")
 
   // Relations
   versions        ArticleVersion[]
@@ -263,6 +290,7 @@ model User {
   // Status
   isActive        Boolean   @default(true)
   emailVerified   Boolean   @default(false)
+  isAdmin         Boolean   @default(false) @map("is_admin")
 
   // Relations
   workspaceMemberships WorkspaceMember[]
@@ -465,4 +493,39 @@ model SearchLog {
 
   @@index([createdAt])
   @@index([searchType])
+}
+
+// ============================================================================
+// CMS MODELS
+// ============================================================================
+
+model CmsPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique @db.VarChar(255)
+  title          String   @db.VarChar(500)
+  content        String   @db.Text
+  seoTitle       String?  @map("seo_title") @db.VarChar(255)
+  seoDescription String?  @map("seo_description") @db.VarChar(500)
+  isPublished    Boolean  @default(false) @map("is_published")
+  createdById    String   @map("created_by_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("cms_pages")
+}
+
+model LegalUpdate {
+  id            String   @id @default(cuid())
+  title         String   @db.VarChar(500)
+  summary       String?  @db.Text
+  content       String   @db.Text
+  publishDate   DateTime @map("publish_date")
+  isHighlighted Boolean  @default(false) @map("is_highlighted")
+  isPublished   Boolean  @default(false) @map("is_published")
+  relatedDocIds String[] @map("related_doc_ids")
+  createdById   String   @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("legal_updates")
 }

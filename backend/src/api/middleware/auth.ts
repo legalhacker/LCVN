@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     fullName: string;
+    isAdmin?: boolean;
   };
   workspaceId?: string;
 }
@@ -35,7 +36,7 @@ export const authenticate = async (
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, fullName: true, isActive: true },
+      select: { id: true, email: true, fullName: true, isActive: true, isAdmin: true },
     });
 
     if (!user || !user.isActive) {
@@ -46,6 +47,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      isAdmin: user.isAdmin,
     };
 
     next();
@@ -73,7 +75,7 @@ export const optionalAuth = async (
 
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, email: true, fullName: true, isActive: true },
+        select: { id: true, email: true, fullName: true, isActive: true, isAdmin: true },
       });
 
       if (user && user.isActive) {
@@ -81,6 +83,7 @@ export const optionalAuth = async (
           id: user.id,
           email: user.email,
           fullName: user.fullName,
+          isAdmin: user.isAdmin,
         };
       }
     }

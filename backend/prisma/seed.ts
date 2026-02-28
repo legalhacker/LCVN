@@ -35,6 +35,7 @@ async function main() {
       fullName: 'Nguyễn Văn Admin',
       isActive: true,
       emailVerified: true,
+      isAdmin: true,
     },
   });
 

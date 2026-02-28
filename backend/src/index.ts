@@ -14,6 +14,7 @@ import authRoutes from './api/routes/auth.js';
 import workspaceRoutes from './api/routes/workspaces.js';
 import annotationRoutes from './api/routes/annotations.js';
 import notificationRoutes from './api/routes/notifications.js';
+import adminRouter from './api/routes/admin/index.js';
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/annotations', annotationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRouter);
 
 // Error handling
 app.use(errorHandler);

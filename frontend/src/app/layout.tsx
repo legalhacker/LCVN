@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from './providers';
-import { Navbar } from '@/components/layout/Navbar';
 
 export const metadata: Metadata = {
   title: 'LCVN - Tra cứu pháp luật dễ dàng',
@@ -26,10 +25,7 @@ export default function RootLayout({
         }}
       >
         <Providers>
-          <Navbar />
-          <main style={{ paddingTop: '64px' }}>
-            {children}
-          </main>
+          {children}
         </Providers>
       </body>
     </html>
