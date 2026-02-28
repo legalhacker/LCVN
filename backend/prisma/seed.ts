@@ -30,7 +30,7 @@ async function main() {
 
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@vietlaw.vn',
+      email: 'admin@lcvn.vn',
       passwordHash,
       fullName: 'Nguyễn Văn Admin',
       isActive: true,
