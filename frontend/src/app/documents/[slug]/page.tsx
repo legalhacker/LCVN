@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { useDocument, useDocumentFull } from '@/hooks/useDocuments';
 import { Loader2, AlertCircle, List, FileText, Link2, Download, X, ArrowRight, GitMerge, FileEdit, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { DocumentRelation } from '@/lib/api';
-
-interface DocumentReaderProps {
-  params: { slug: string };
-}
 
 // Status badge with official styling
 function StatusBadge({ status }: { status: string }) {
@@ -60,8 +57,9 @@ const RELATION_LABELS: Record<string, { label: string; color: string; bgColor: s
   RELATED: { label: 'Văn bản liên quan', color: '#546e7a', bgColor: '#eceff1' },
 };
 
-export default function DocumentReader({ params }: DocumentReaderProps) {
-  const { slug } = params;
+export default function DocumentReader() {
+  const params = useParams();
+  const slug = params.slug as string;
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
   const [showTOC, setShowTOC] = useState(true);
   const [showRelated, setShowRelated] = useState(false);
