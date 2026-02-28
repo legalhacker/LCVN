@@ -1,0 +1,467 @@
+// VietLaw Platform - Database Schema
+// PostgreSQL with Prisma ORM
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// DOCUMENT MODELS
+// ============================================================================
+
+enum DocumentType {
+  LAW           // Luật
+  CODE          // Bộ luật
+  DECREE        // Nghị định
+  CIRCULAR      // Thông tư
+  RESOLUTION    // Nghị quyết
+  DECISION      // Quyết định
+  DIRECTIVE     // Chỉ thị
+  DISPATCH      // Công văn
+}
+
+enum DocumentStatus {
+  DRAFT              // Dự thảo
+  EFFECTIVE          // Đang có hiệu lực
+  EXPIRED            // Hết hiệu lực
+  PARTIALLY_EXPIRED  // Hết hiệu lực một phần
+  NOT_YET_EFFECTIVE  // Chưa có hiệu lực
+}
+
+model Document {
+  id                String         @id @default(cuid())
+
+  // Core identification
+  documentNumber    String         @unique  // Số văn bản: 45/2019/QH14
+  title             String                  // Tên văn bản
+  titleSlug         String         @unique  // URL-friendly slug
+  documentType      DocumentType            // Loại văn bản
+
+  // Issuing information
+  issuingBody       String                  // Cơ quan ban hành: Quốc hội
+  issuedDate        DateTime                // Ngày ban hành
+  effectiveDate     DateTime?               // Ngày có hiệu lực
+  expirationDate    DateTime?               // Ngày hết hiệu lực
+
+  // Status
+  status            DocumentStatus @default(EFFECTIVE)
+
+  // Content
+  preamble          String?        @db.Text // Lời nói đầu
+  fullText          String?        @db.Text // Full document text (for search indexing)
+
+  // Metadata
+  keywords          String[]                // Từ khóa
+  summary           String?        @db.Text // Tóm tắt nội dung
+
+  // Hierarchy (for amendments/replacements)
+  replacesId        String?
+  replaces          Document?      @relation("DocumentReplacement", fields: [replacesId], references: [id])
+  replacedBy        Document[]     @relation("DocumentReplacement")
+
+  // Relations
+  articles          Article[]
+  relatedFrom       DocumentRelation[] @relation("RelatedFrom")
+  relatedTo         DocumentRelation[] @relation("RelatedTo")
+
+  // Timestamps
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([documentType])
+  @@index([status])
+  @@index([issuedDate])
+  @@index([effectiveDate])
+  @@index([issuingBody])
+}
+
+enum RelationType {
+  AMENDS              // Sửa đổi
+  SUPPLEMENTS         // Bổ sung
+  IMPLEMENTS          // Hướng dẫn thi hành
+  REPLACES            // Thay thế
+  REFERENCES          // Dẫn chiếu
+  RELATED             // Liên quan
+}
+
+model DocumentRelation {
+  id              String       @id @default(cuid())
+
+  fromDocumentId  String
+  fromDocument    Document     @relation("RelatedFrom", fields: [fromDocumentId], references: [id], onDelete: Cascade)
+
+  toDocumentId    String
+  toDocument      Document     @relation("RelatedTo", fields: [toDocumentId], references: [id], onDelete: Cascade)
+
+  relationType    RelationType
+  description     String?
+
+  createdAt       DateTime     @default(now())
+
+  @@unique([fromDocumentId, toDocumentId, relationType])
+  @@index([fromDocumentId])
+  @@index([toDocumentId])
+}
+
+// ============================================================================
+// ARTICLE MODELS (Core of the system)
+// ============================================================================
+
+model Article {
+  id              String    @id @default(cuid())
+
+  // Parent document
+  documentId      String
+  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Article identification - STABLE UNIQUE ID
+  articleNumber   String              // Điều 1, Điều 2, etc.
+  articleId       String    @unique   // Composite: doc_slug:article_number
+
+  // Structure
+  chapterNumber   String?             // Chương I, Chương II
+  chapterTitle    String?             // Tên chương
+  sectionNumber   String?             // Mục 1, Mục 2
+  sectionTitle    String?             // Tên mục
+
+  // Content
+  title           String?             // Tiêu đề điều (nếu có)
+  content         String    @db.Text  // Nội dung điều
+  contentHtml     String?   @db.Text  // HTML formatted content
+
+  // Order for display
+  orderIndex      Int                 // For correct ordering
+
+  // Search optimization
+  keywords        String[]            // Curated keywords for semantic search
+  summary         String?             // Neutral summary (no legal advice)
+
+  // Legal topic classification (for improved search relevance)
+  legalTopics     String[]            // e.g., ["thành lập doanh nghiệp", "vốn điều lệ"]
+  articleType     String?             // DEFINITION, GENERAL, PROCEDURE, RIGHTS, OBLIGATIONS, PENALTY
+  subjectMatter   String?             // Primary subject (what article is ABOUT, not just mentions)
+  importance      Int       @default(1) // 1-5, higher = more important/core article
+
+  // Practical importance flag
+  hasPracticalReferences Boolean @default(false)
+
+  // Relations
+  versions        ArticleVersion[]
+  annotations     Annotation[]
+  resources       ArticleResource[]
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([documentId])
+  @@index([articleNumber])
+  @@index([orderIndex])
+  @@index([hasPracticalReferences])
+}
+
+model ArticleVersion {
+  id              String    @id @default(cuid())
+
+  articleId       String
+  article         Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Version info
+  versionNumber   Int
+  content         String    @db.Text
+  contentHtml     String?   @db.Text
+
+  // What changed
+  changeType      String              // 'amended', 'supplemented', 'replaced'
+  changeNote      String?   @db.Text  // Description of change
+
+  // Source of change
+  amendingDocumentId String?
+
+  effectiveFrom   DateTime
+  effectiveUntil  DateTime?
+
+  createdAt       DateTime  @default(now())
+
+  @@index([articleId])
+  @@index([effectiveFrom])
+}
+
+// ============================================================================
+// PRACTICAL REFERENCES
+// ============================================================================
+
+enum ResourceType {
+  COURT_CASE              // Bản án, Án lệ
+  ADMIN_PENALTY           // Quyết định xử phạt
+  EXPERT_ARTICLE          // Bài viết chuyên gia
+  LAW_FIRM_PUBLICATION    // Bài viết từ công ty luật
+  ACADEMIC_PAPER          // Nghiên cứu học thuật
+}
+
+model ArticleResource {
+  id              String       @id @default(cuid())
+
+  articleId       String
+  article         Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  resourceType    ResourceType
+
+  // Metadata
+  title           String
+  source          String              // Court name, publication, etc.
+  author          String?
+  publishedDate   DateTime?
+
+  // External reference
+  externalUrl     String?
+  citation        String?             // Legal citation format
+
+  // Brief description (NOT full content)
+  excerpt         String?   @db.Text
+
+  // For court cases
+  caseNumber      String?
+  courtName       String?
+  judgmentDate    DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([articleId])
+  @@index([resourceType])
+}
+
+// ============================================================================
+// USER & WORKSPACE MODELS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN     // Platform admin
+  WORKSPACE_ADMIN // Workspace owner/admin
+  MEMBER          // Regular workspace member
+  VIEWER          // Read-only access
+}
+
+model User {
+  id              String    @id @default(cuid())
+
+  email           String    @unique
+  passwordHash    String
+
+  // Profile
+  fullName        String
+  avatarUrl       String?
+
+  // Status
+  isActive        Boolean   @default(true)
+  emailVerified   Boolean   @default(false)
+
+  // Relations
+  workspaceMemberships WorkspaceMember[]
+  annotations     Annotation[]
+  mentions        Mention[]
+  notifications   Notification[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
+
+  @@index([email])
+}
+
+model Workspace {
+  id              String    @id @default(cuid())
+
+  name            String
+  slug            String    @unique
+  description     String?
+
+  // Company info (optional)
+  companyName     String?
+  logoUrl         String?
+
+  // Settings
+  isActive        Boolean   @default(true)
+  maxMembers      Int       @default(50)
+
+  // Relations
+  members         WorkspaceMember[]
+  annotations     Annotation[]
+  workspaceNotes  WorkspaceNote[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model WorkspaceMember {
+  id              String    @id @default(cuid())
+
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role            UserRole  @default(MEMBER)
+
+  joinedAt        DateTime  @default(now())
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+// ============================================================================
+// ANNOTATION & COLLABORATION MODELS
+// ============================================================================
+
+enum AnnotationVisibility {
+  PRIVATE         // Only creator can see
+  WORKSPACE       // All workspace members can see
+}
+
+model Annotation {
+  id              String    @id @default(cuid())
+
+  // What is being annotated
+  articleId       String
+  article         Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Who created it
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Workspace context (null for private)
+  workspaceId     String?
+  workspace       Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Text range anchoring (for highlights)
+  // Using text position for stability across minor edits
+  anchorType      String    @default("text_range")  // 'text_range' or 'paragraph'
+  startOffset     Int?                              // Character offset from article start
+  endOffset       Int?                              // Character offset end
+  selectedText    String?   @db.Text                // The actual selected text (for validation)
+  paragraphIndex  Int?                              // Alternative: paragraph number
+
+  // Annotation content
+  annotationType  String    @default("note")        // 'highlight', 'note', 'bookmark'
+  highlightColor  String?                           // 'yellow', 'green', 'blue', 'pink'
+  noteContent     String?   @db.Text                // Note text (markdown supported)
+
+  // Visibility
+  visibility      AnnotationVisibility @default(PRIVATE)
+
+  // Relations
+  mentions        Mention[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([articleId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([visibility])
+}
+
+model Mention {
+  id              String    @id @default(cuid())
+
+  annotationId    String
+  annotation      Annotation @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+
+  mentionedUserId String
+  mentionedUser   User      @relation(fields: [mentionedUserId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+
+  @@unique([annotationId, mentionedUserId])
+  @@index([mentionedUserId])
+}
+
+// Workspace-level notes for specific articles (Tab 3 in practical references)
+model WorkspaceNote {
+  id              String    @id @default(cuid())
+
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  articleId       String              // Reference to article (not FK for flexibility)
+
+  title           String
+  content         String    @db.Text  // Rich text content
+
+  createdById     String
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([articleId])
+}
+
+// ============================================================================
+// NOTIFICATION MODEL
+// ============================================================================
+
+enum NotificationType {
+  MENTION                 // Someone mentioned you
+  ANNOTATION_REPLY        // Reply to your annotation
+  DOCUMENT_UPDATE         // Document you're following was updated
+  WORKSPACE_INVITE        // Invited to workspace
+}
+
+model Notification {
+  id              String           @id @default(cuid())
+
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            NotificationType
+  title           String
+  message         String
+
+  // Link to relevant content
+  linkUrl         String?
+  linkType        String?          // 'article', 'annotation', 'workspace'
+  linkId          String?
+
+  isRead          Boolean          @default(false)
+  emailSent       Boolean          @default(false)
+
+  createdAt       DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// SEARCH & ANALYTICS
+// ============================================================================
+
+model SearchLog {
+  id              String    @id @default(cuid())
+
+  userId          String?
+  query           String
+  searchType      String              // 'global', 'in_document', 'semantic'
+
+  documentId      String?             // For in-document search
+
+  resultsCount    Int
+  clickedResultId String?
+
+  createdAt       DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([searchType])
+}
