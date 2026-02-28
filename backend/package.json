@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && node -e \"const{execSync:e}=require('child_process');const r=String(process.env.DB_RESET||'').trim();e(r==='1'?'npx prisma db push --force-reset --accept-data-loss':'npx prisma migrate deploy',{stdio:'inherit'})\"",
+    "vercel-build": "prisma generate && prisma db push",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
