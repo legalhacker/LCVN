@@ -75,6 +75,7 @@ model Document {
   summary           String?        @db.Text // Tóm tắt nội dung
 
   // AI-optimized metadata
+  semanticId         String?  @unique @map("semantic_id") @db.VarChar(255) // e.g. VN_LDN_2020
   jurisdiction       String   @default("viet_nam") @db.VarChar(50)
   sourceOrigin       String?  @map("source_origin") @db.VarChar(255)
   sourceUrl          String?  @map("source_url") @db.VarChar(500)
@@ -152,6 +153,13 @@ model Article {
   sectionNumber   String?             // Mục 1, Mục 2
   sectionTitle    String?             // Tên mục
 
+  // Stable AI-facing identifier (e.g. VN_LDN_2020_ART_2)
+  semanticId    String?   @unique @map("semantic_id") @db.VarChar(255)
+
+  // Temporal validity (overrides document-level dates for specific articles)
+  effectiveFrom DateTime? @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+
   // Content
   title           String?             // Tiêu đề điều (nếu có)
   content         String    @db.Text  // Nội dung điều
@@ -183,6 +191,7 @@ model Article {
   versions        ArticleVersion[]
   annotations     Annotation[]
   resources       ArticleResource[]
+  clauses         Clause[]
 
   // Timestamps
   createdAt       DateTime  @default(now())
@@ -528,4 +537,41 @@ model LegalUpdate {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("legal_updates")
+}
+
+// ============================================================================
+// CLAUSE MODEL — Clause-level granularity for AI-native access
+// ============================================================================
+// JSON is the single source of truth. HTML is derived from clauses, never stored separately.
+// Enables: RAG pipelines, agent tool calling, legal graph traversal.
+
+model Clause {
+  id           String    @id @default(cuid())
+
+  // Stable AI-facing identifier (e.g. VN_LDN_2020_ART_2_CLAUSE_1)
+  semanticId   String    @unique @map("semantic_id") @db.VarChar(255)
+
+  // Parent article
+  articleId    String    @map("article_id")
+  article      Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Content — legalText is the canonical source; plain text, no HTML
+  clauseNumber Int       @map("clause_number")
+  legalText    String    @map("legal_text") @db.Text
+  plainSummary String?   @map("plain_summary") @db.Text // Human-readable, non-legal summary
+
+  // AI classification metadata
+  normType     String?   @map("norm_type") @db.VarChar(50)  // definition | obligation | prohibition | procedure | right
+  riskLevel    String?   @map("risk_level") @db.VarChar(20) // low | medium | high
+  appliesTo    String[]  @map("applies_to")                 // entities this clause governs
+
+  // Temporal validity (overrides article-level when set)
+  effectiveFrom DateTime? @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([articleId])
+  @@map("clauses")
 }

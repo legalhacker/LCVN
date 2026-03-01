@@ -21,6 +21,7 @@ export interface DocumentFormData {
   applicableEntities: string[];
   legalDomains: string[];
   legalSummary: string;
+  semanticId: string; // e.g. VN_LDN_2020 — stable AI-facing document identifier
 }
 
 const EMPTY: DocumentFormData = {
@@ -28,6 +29,7 @@ const EMPTY: DocumentFormData = {
   issuedDate: '', effectiveDate: '', expirationDate: '', status: 'EFFECTIVE',
   preamble: '', keywords: [], summary: '', jurisdiction: 'viet_nam',
   sourceOrigin: '', sourceUrl: '', applicableEntities: [], legalDomains: [], legalSummary: '',
+  semanticId: '',
 };
 
 interface Props {
@@ -224,9 +226,16 @@ export function DocumentForm({ initialData, onSubmit, saving }: Props) {
             <input style={inputStyle} value={form.sourceOrigin} onChange={e => set('sourceOrigin', e.target.value)} placeholder="Cổng thông tin pháp luật" />
           </div>
         </div>
-        <div>
+        <div style={{ marginBottom: '16px' }}>
           <label style={labelStyle}>URL nguồn</label>
           <input type="url" style={inputStyle} value={form.sourceUrl} onChange={e => set('sourceUrl', e.target.value)} placeholder="https://..." />
+        </div>
+        <div>
+          <label style={labelStyle}>Semantic ID (AI)</label>
+          <input style={inputStyle} value={form.semanticId} onChange={e => set('semanticId', e.target.value)} placeholder="VN_LDN_2020" />
+          <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0' }}>
+            Mã định danh ổn định cho AI agents (vd: VN_LDN_2020). Tự động điền từ JSON.
+          </p>
         </div>
       </div>
 

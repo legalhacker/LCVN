@@ -49,8 +49,9 @@ export function createAdminApi(token: string) {
     deleteDocument: (id: string) =>
       fetchAdmin(`/api/admin/documents/${id}`, opts({ method: 'DELETE' })),
     // Ingest articles from a parsed JSON upload.
-    // Called after createDocument(); stores articles as first-class Article records.
-    ingestJsonArticles: (id: string, articles: Array<{ article_number: number; title?: string; content: string }>) =>
+    // Supports legacy format (article.content) and new clause-level format (article.clauses[]).
+    // Called after createDocument(); stores Article + Clause records.
+    ingestJsonArticles: (id: string, articles: unknown[]) =>
       fetchAdmin(`/api/admin/documents/${id}/json-articles`, opts({ method: 'POST', body: JSON.stringify({ articles }) })),
 
     uploadDocument: (id: string, file: File) => {

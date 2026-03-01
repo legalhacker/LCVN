@@ -57,7 +57,7 @@ router.post('/', requireAdmin, async (req: Request, res: Response, next) => {
     const {
       documentNumber, title, titleSlug, documentType, issuingBody, issuedDate, effectiveDate,
       expirationDate, status, preamble, keywords, summary, jurisdiction, sourceOrigin, sourceUrl,
-      applicableEntities, legalDomains, legalSummary,
+      applicableEntities, legalDomains, legalSummary, semanticId,
     } = req.body;
 
     const doc = await prisma.document.create({
@@ -80,6 +80,7 @@ router.post('/', requireAdmin, async (req: Request, res: Response, next) => {
         applicableEntities: applicableEntities || [],
         legalDomains: legalDomains || [],
         legalSummary,
+        semanticId: semanticId || null,
       },
     });
 
@@ -118,7 +119,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response, next) => {
     const {
       documentNumber, title, titleSlug, documentType, issuingBody, issuedDate, effectiveDate,
       expirationDate, status, preamble, keywords, summary, jurisdiction, sourceOrigin, sourceUrl,
-      applicableEntities, legalDomains, legalSummary,
+      applicableEntities, legalDomains, legalSummary, semanticId,
     } = req.body;
 
     const doc = await prisma.document.update({
@@ -142,6 +143,7 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response, next) => {
         ...(applicableEntities && { applicableEntities }),
         ...(legalDomains && { legalDomains }),
         ...(legalSummary !== undefined && { legalSummary }),
+        ...(semanticId !== undefined && { semanticId: semanticId || null }),
       },
     });
 
@@ -162,11 +164,13 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response, next) =>
 });
 
 // POST /api/admin/documents/:id/json-articles
-// Ingest layer: accepts parsed article data from JSON upload and stores as Article records.
-// This is called after the document metadata has been saved.
-// Input:  { articles: [{ article_number, title?, content }] }
-// Output: { success, articleCount }
-// NOTE: Replaces all existing articles for the document.
+// Ingest structured article data from JSON upload. Supports two formats:
+//   Legacy:  { article_number, title?, content }
+//   New:     { article_number, semantic_id?, title?, effective_from?, effective_to?,
+//               clauses: [{ semantic_id, clause_number, legal_text, plain_summary?, ai_metadata? }] }
+// Clause-based articles: content/contentHtml are derived from clause texts (JSON is source of truth).
+// Output: { success, articleCount, clauseCount }
+// NOTE: Replaces all existing articles + clauses for this document atomically.
 router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Response, next) => {
   try {
     const { articles } = req.body;
@@ -182,54 +186,126 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
       return;
     }
 
-    // Validate minimal article shape
+    // Validate each article: needs article_number + (clauses OR content)
     for (const a of articles) {
-      if (typeof a.article_number !== 'number' || typeof a.content !== 'string') {
-        res.status(400).json({ error: 'Each article requires article_number (number) and content (string)' });
+      if (typeof a.article_number !== 'number') {
+        res.status(400).json({ error: 'Each article requires article_number (number)' });
         return;
+      }
+      const hasClauses = Array.isArray(a.clauses) && a.clauses.length > 0;
+      const hasContent = typeof a.content === 'string' && a.content.length > 0;
+      if (!hasClauses && !hasContent) {
+        res.status(400).json({
+          error: `Article ${a.article_number}: requires either "clauses" array or "content" string`,
+        });
+        return;
+      }
+      if (hasClauses) {
+        for (const c of a.clauses) {
+          if (!c.semantic_id || typeof c.clause_number !== 'number' || typeof c.legal_text !== 'string') {
+            res.status(400).json({
+              error: `Article ${a.article_number}: each clause requires semantic_id, clause_number (number), legal_text (string)`,
+            });
+            return;
+          }
+        }
       }
     }
 
     const slug = doc.titleSlug;
 
-    // Deduplicate by article_number (last entry wins) to avoid articleId conflicts
-    const seen = new Map<number, { article_number: number; title?: string; content: string }>();
-    for (const a of articles) {
-      seen.set(a.article_number, a);
-    }
+    // Deduplicate by article_number (last entry wins)
+    const seen = new Map<number, Record<string, unknown>>();
+    for (const a of articles) seen.set(a.article_number, a);
     const deduped = Array.from(seen.values());
 
-    // Storage layer: map ingest fields → Article schema
-    // content      = plain text (preserved for full-text search)
-    // contentHtml  = HTML for user-facing rendering (never show raw JSON)
-    const articlesData = deduped.map((a, idx) => {
-      const contentHtml = a.content
-        .split('\n')
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.length > 0)
-        .map((line: string) => `<p>${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
-        .join('');
+    // Build article rows + collect clauses keyed by deduped index
+    const articlesData: Record<string, unknown>[] = [];
+    const clausesByIndex = new Map<number, Record<string, unknown>[]>();
 
-      return {
+    for (let idx = 0; idx < deduped.length; idx++) {
+      const a = deduped[idx];
+      const hasClauses = Array.isArray(a.clauses) && (a.clauses as unknown[]).length > 0;
+
+      let content: string;
+      let contentHtml: string;
+
+      if (hasClauses) {
+        // Derive plain text + HTML from structured clauses (JSON is source of truth, not HTML)
+        const clauses = a.clauses as Record<string, unknown>[];
+        content = clauses
+          .map(c => `${c.clause_number}. ${c.legal_text}`)
+          .join('\n');
+        contentHtml = clauses
+          .map(c => {
+            const safe = (c.legal_text as string)
+              .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            // id= on <p> enables direct clause deep-linking via #semanticId anchors
+            return `<p id="${c.semantic_id}"><strong>${c.clause_number}.</strong> ${safe}</p>`;
+          })
+          .join('');
+        clausesByIndex.set(idx, clauses);
+      } else {
+        content = a.content as string;
+        contentHtml = content
+          .split('\n')
+          .map((l: string) => l.trim())
+          .filter((l: string) => l.length > 0)
+          .map((l: string) =>
+            `<p>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+          )
+          .join('');
+      }
+
+      articlesData.push({
         documentId: req.params.id,
         articleNumber: String(a.article_number),
         articleId: `${slug}:${a.article_number}`,
-        title: a.title || '',
-        content: a.content,
+        semanticId: (a.semantic_id as string) || null,
+        title: (a.title as string) || '',
+        content,
         contentHtml,
+        effectiveFrom: a.effective_from ? new Date(a.effective_from as string) : null,
+        effectiveTo: a.effective_to ? new Date(a.effective_to as string) : null,
         orderIndex: idx,
         keywords: [],
         legalTopics: [],
-      };
+      });
+    }
+
+    // Atomic replacement: delete existing articles (cascades to clauses), recreate everything
+    let totalClauses = 0;
+    await prisma.$transaction(async (tx) => {
+      await tx.article.deleteMany({ where: { documentId: req.params.id } });
+
+      // Create articles individually to capture generated IDs for clause association
+      const created = await Promise.all(
+        articlesData.map(data => tx.article.create({ data: data as Parameters<typeof tx.article.create>[0]['data'] }))
+      );
+
+      // Create clauses for articles that have them
+      for (const [idx, clauses] of clausesByIndex) {
+        const articleId = created[idx].id;
+        const src = deduped[idx];
+        await tx.clause.createMany({
+          data: clauses.map(c => ({
+            semanticId: c.semantic_id as string,
+            articleId,
+            clauseNumber: c.clause_number as number,
+            legalText: c.legal_text as string,
+            plainSummary: (c.plain_summary as string) || null,
+            normType: ((c.ai_metadata as Record<string, unknown>)?.norm_type as string) || null,
+            riskLevel: ((c.ai_metadata as Record<string, unknown>)?.risk_level as string) || null,
+            appliesTo: ((c.ai_metadata as Record<string, unknown>)?.applies_to as string[]) || [],
+            effectiveFrom: src.effective_from ? new Date(src.effective_from as string) : null,
+            effectiveTo: src.effective_to ? new Date(src.effective_to as string) : null,
+          })),
+        });
+        totalClauses += clauses.length;
+      }
     });
 
-    // Replace existing articles atomically
-    await prisma.$transaction([
-      prisma.article.deleteMany({ where: { documentId: req.params.id } }),
-      prisma.article.createMany({ data: articlesData }),
-    ]);
-
-    res.json({ success: true, articleCount: articlesData.length });
+    res.json({ success: true, articleCount: articlesData.length, clauseCount: totalClauses });
   } catch (error) {
     next(error);
   }
