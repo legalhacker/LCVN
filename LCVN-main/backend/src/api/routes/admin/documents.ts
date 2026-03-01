@@ -299,13 +299,22 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
     // Atomic replacement using the non-interactive array-form $transaction.
     // All data is pre-built in JS so no findMany is needed inside the transaction —
     // the DB sees only three sequential bulk operations inside a single BEGIN/COMMIT.
-    await prisma.$transaction([
-      prisma.article.deleteMany({ where: { documentId: req.params.id } }),
-      prisma.article.createMany({ data: articlesData as Parameters<typeof prisma.article.createMany>[0]['data'] }),
-      ...(allClauses.length > 0
-        ? [prisma.clause.createMany({ data: allClauses as Parameters<typeof prisma.clause.createMany>[0]['data'] })]
-        : []),
-    ]);
+    try {
+      await prisma.$transaction([
+        prisma.article.deleteMany({ where: { documentId: req.params.id } }),
+        prisma.article.createMany({ data: articlesData as Parameters<typeof prisma.article.createMany>[0]['data'] }),
+        ...(allClauses.length > 0
+          ? [prisma.clause.createMany({ data: allClauses as Parameters<typeof prisma.clause.createMany>[0]['data'] })]
+          : []),
+      ]);
+    } catch (txErr) {
+      // Surface exact Prisma error code and message for diagnostics
+      const code = (txErr as { code?: string }).code;
+      const meta = (txErr as { meta?: unknown }).meta;
+      const msg = (txErr as Error).message?.slice(0, 500);
+      res.status(400).json({ error: `Ingest failed [${code ?? 'UNKNOWN'}]: ${msg}`, code, meta });
+      return;
+    }
 
     res.json({ success: true, articleCount: articlesData.length, clauseCount: allClauses.length });
   } catch (error) {
