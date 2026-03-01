@@ -1,4 +1,5 @@
 import { Router, Response, Request } from 'express';
+import { randomUUID } from 'crypto';
 import multer from 'multer';
 import { prisma } from '../../../services/prisma.js';
 import { requireAdmin } from '../../middleware/adminAuth.js';
@@ -219,9 +220,12 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
     for (const a of articles) seen.set(a.article_number, a);
     const deduped = Array.from(seen.values());
 
-    // Build article rows + collect clauses keyed by deduped index
+    // Pre-generate article IDs so clause rows can reference them without a findMany inside the
+    // transaction. This lets us use the non-interactive array-form $transaction, which is safe
+    // with Supabase PgBouncer in transaction mode (callback form holds a connection across JS
+    // execution, which is incompatible with connection poolers).
     const articlesData: Record<string, unknown>[] = [];
-    const clausesByIndex = new Map<number, Record<string, unknown>[]>();
+    const allClauses: Record<string, unknown>[] = [];
 
     for (let idx = 0; idx < deduped.length; idx++) {
       const a = deduped[idx];
@@ -244,7 +248,6 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
             return `<p id="${c.semantic_id}"><strong>${c.clause_number}.</strong> ${safe}</p>`;
           })
           .join('');
-        clausesByIndex.set(idx, clauses);
       } else {
         content = a.content as string;
         contentHtml = content
@@ -257,7 +260,9 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
           .join('');
       }
 
+      const articleDbId = randomUUID();
       articlesData.push({
+        id: articleDbId,
         documentId: req.params.id,
         articleNumber: String(a.article_number),
         articleId: `${slug}:${a.article_number}`,
@@ -271,53 +276,38 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
         keywords: [],
         legalTopics: [],
       });
-    }
 
-    // Atomic replacement: delete existing articles (cascades to clauses), recreate everything.
-    // Uses bulk operations (createMany) to avoid transaction timeouts on large documents.
-    let totalClauses = 0;
-    await prisma.$transaction(async (tx) => {
-      await tx.article.deleteMany({ where: { documentId: req.params.id } });
-
-      // Bulk-create all articles in one operation (fast, but returns no IDs)
-      await tx.article.createMany({ data: articlesData as Parameters<typeof tx.article.createMany>[0]['data'] });
-
-      // Fetch the created articles to get their DB-generated IDs (keyed by stable articleId)
-      const createdArticles = await tx.article.findMany({
-        where: { documentId: req.params.id },
-        select: { id: true, articleId: true },
-      });
-      const dbIdByArticleId = new Map(createdArticles.map(a => [a.articleId, a.id]));
-
-      // Collect all clause rows in one pass, then bulk-insert in a single createMany
-      const allClauses: Record<string, unknown>[] = [];
-      for (const [idx, clauses] of clausesByIndex) {
-        const articleKey = articlesData[idx].articleId as string;
-        const dbArticleId = dbIdByArticleId.get(articleKey);
-        if (!dbArticleId) continue;
-        const src = deduped[idx];
+      if (hasClauses) {
+        const clauses = a.clauses as Record<string, unknown>[];
         for (const c of clauses) {
           allClauses.push({
             semanticId: c.semantic_id as string,
-            articleId: dbArticleId,
+            articleId: articleDbId,
             clauseNumber: c.clause_number as number,
             legalText: c.legal_text as string,
             plainSummary: (c.plain_summary as string) || null,
             normType: ((c.ai_metadata as Record<string, unknown>)?.norm_type as string) || null,
             riskLevel: ((c.ai_metadata as Record<string, unknown>)?.risk_level as string) || null,
             appliesTo: ((c.ai_metadata as Record<string, unknown>)?.applies_to as string[]) || [],
-            effectiveFrom: src.effective_from ? new Date(src.effective_from as string) : null,
-            effectiveTo: src.effective_to ? new Date(src.effective_to as string) : null,
+            effectiveFrom: a.effective_from ? new Date(a.effective_from as string) : null,
+            effectiveTo: a.effective_to ? new Date(a.effective_to as string) : null,
           });
         }
       }
-      if (allClauses.length > 0) {
-        await tx.clause.createMany({ data: allClauses as Parameters<typeof tx.clause.createMany>[0]['data'] });
-      }
-      totalClauses = allClauses.length;
-    }, { timeout: 30000 }); // 30s — large documents (200+ articles, 800+ clauses) need extra time
+    }
 
-    res.json({ success: true, articleCount: articlesData.length, clauseCount: totalClauses });
+    // Atomic replacement using the non-interactive array-form $transaction.
+    // All data is pre-built in JS so no findMany is needed inside the transaction —
+    // the DB sees only three sequential bulk operations inside a single BEGIN/COMMIT.
+    await prisma.$transaction([
+      prisma.article.deleteMany({ where: { documentId: req.params.id } }),
+      prisma.article.createMany({ data: articlesData as Parameters<typeof prisma.article.createMany>[0]['data'] }),
+      ...(allClauses.length > 0
+        ? [prisma.clause.createMany({ data: allClauses as Parameters<typeof prisma.clause.createMany>[0]['data'] })]
+        : []),
+    ]);
+
+    res.json({ success: true, articleCount: articlesData.length, clauseCount: allClauses.length });
   } catch (error) {
     next(error);
   }
