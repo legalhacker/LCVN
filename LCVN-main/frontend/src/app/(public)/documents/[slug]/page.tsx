@@ -76,8 +76,10 @@ export default function DocumentReader() {
       const element = window.document.getElementById(articleId);
       const container = contentContainerRef.current;
       if (element && container) {
-        const offsetTop = element.offsetTop - 16;
-        container.scrollTo({ top: offsetTop, behavior: 'smooth' });
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        const scrollTarget = container.scrollTop + elementRect.top - containerRect.top - 16;
+        container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
         setActiveArticleId(articleId);
       }
     }, 100);
@@ -119,6 +121,31 @@ export default function DocumentReader() {
   const scrollToTop = () => {
     contentContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Track active article while scrolling via IntersectionObserver
+  useEffect(() => {
+    const container = contentContainerRef.current;
+    if (!container || !articles.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          setActiveArticleId(visible[0].target.id);
+        }
+      },
+      { root: container, rootMargin: '0px 0px -65% 0px', threshold: 0 }
+    );
+
+    articles.forEach((article) => {
+      const el = window.document.getElementById(article.articleId);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [articles]);
 
   if (tocLoading) {
     return (
@@ -265,7 +292,9 @@ export default function DocumentReader() {
             position: 'sticky',
             top: '48px',
             overflowY: 'auto',
-          }}>
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cfd8dc transparent',
+          } as React.CSSProperties}>
             <div style={{ padding: '20px 16px' }}>
               <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#37474f', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Mục lục
@@ -323,10 +352,12 @@ export default function DocumentReader() {
           flex: 1,
           backgroundColor: '#ffffff',
           height: 'calc(100vh - 48px)',
-          overflowY: 'auto',
+          overflowY: 'scroll',
           position: 'sticky',
           top: '48px',
-        }}>
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#cfd8dc transparent',
+        } as React.CSSProperties}>
           {/* Document Header - Official Style */}
           <header style={{
             padding: '40px 48px',
@@ -789,23 +820,36 @@ export default function DocumentReader() {
           }
         }
 
-        /* Scrollbar styling */
-        aside::-webkit-scrollbar,
-        main::-webkit-scrollbar {
-          width: 6px;
+        /* Sidebar scrollbar */
+        aside::-webkit-scrollbar {
+          width: 5px;
         }
-        aside::-webkit-scrollbar-track,
-        main::-webkit-scrollbar-track {
+        aside::-webkit-scrollbar-track {
           background: transparent;
         }
-        aside::-webkit-scrollbar-thumb,
-        main::-webkit-scrollbar-thumb {
+        aside::-webkit-scrollbar-thumb {
           background: #cfd8dc;
           border-radius: 3px;
         }
-        aside::-webkit-scrollbar-thumb:hover,
-        main::-webkit-scrollbar-thumb:hover {
+        aside::-webkit-scrollbar-thumb:hover {
           background: #b0bec5;
+        }
+
+        /* Main content scrollbar — always visible */
+        main::-webkit-scrollbar {
+          width: 8px;
+        }
+        main::-webkit-scrollbar-track {
+          background: #f5f5f5;
+          border-left: 1px solid #e0e0e0;
+        }
+        main::-webkit-scrollbar-thumb {
+          background: #b0bec5;
+          border-radius: 4px;
+          border: 1px solid #f5f5f5;
+        }
+        main::-webkit-scrollbar-thumb:hover {
+          background: #78909c;
         }
       `}</style>
     </div>
