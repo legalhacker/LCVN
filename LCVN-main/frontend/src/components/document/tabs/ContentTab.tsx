@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { Article } from '@/types';
+import { Article } from '@/lib/api';
 
 interface Props {
   articles: Article[];

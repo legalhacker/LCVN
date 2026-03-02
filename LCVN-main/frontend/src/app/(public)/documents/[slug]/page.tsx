@@ -6,6 +6,7 @@ import { useDocument, useDocumentFull } from '@/hooks/useDocuments';
 import { Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
+import { DocumentDetail } from '@/lib/api';
 
 import { DocumentTabs, TabId } from '@/components/document/DocumentTabs';
 import { DocumentToolbar } from '@/components/document/DocumentToolbar';
@@ -257,7 +258,7 @@ export default function DocumentReader() {
 // ─── Document header (title + meta, always visible as first item in pane) ───
 
 interface DocHeaderProps {
-  document: ReturnType<typeof useDocument>['data'] & object;
+  document: DocumentDetail;
   statusCfg: { label: string; bg: string; text: string; border: string };
 }
 
