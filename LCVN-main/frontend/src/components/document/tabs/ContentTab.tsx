@@ -1,14 +1,68 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Article } from '@/lib/api';
+import { Loader2, ExternalLink } from 'lucide-react';
+import { Article, ArticleRelationInfo } from '@/lib/api';
+import Link from 'next/link';
 
 interface Props {
   articles: Article[];
   contentLoading: boolean;
   scrollContainer: React.RefObject<HTMLDivElement | null>;
   onArticleVisible: (articleId: string) => void;
+}
+
+const RELATION_BANNERS: Record<string, { label: string; bg: string; border: string; color: string; icon: string }> = {
+  amends:         { label: 'đã được sửa đổi bởi',            bg: '#fff7ed', border: '#fed7aa', color: '#c2410c', icon: '⚠️' },
+  guides:         { label: 'được hướng dẫn bởi',              bg: '#f0fdf4', border: '#bbf7d0', color: '#15803d', icon: '📋' },
+  repeals:        { label: 'đã bị bãi bỏ bởi',               bg: '#fef2f2', border: '#fecaca', color: '#dc2626', icon: '🚫' },
+  replaces:       { label: 'đã được thay thế bởi',            bg: '#fef2f2', border: '#fca5a5', color: '#b91c1c', icon: '🔄' },
+  references:     { label: 'được dẫn chiếu tại',              bg: '#f8fafc', border: '#e2e8f0', color: '#475569', icon: '📌' },
+  implements:     { label: 'được triển khai tại',             bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', icon: '⚙️' },
+  conflicts_with: { label: 'có thể xung đột với',             bg: '#fefce8', border: '#fde047', color: '#854d0e', icon: '⚡' },
+  interpreted_by: { label: 'được giải thích tại án lệ',       bg: '#faf5ff', border: '#d8b4fe', color: '#7e22ce', icon: '⚖️' },
+};
+
+function ArticleRelationBanner({ relation }: { relation: ArticleRelationInfo }) {
+  const banner = RELATION_BANNERS[relation.relationType];
+  if (!banner) return null;
+
+  const { fromArticle } = relation;
+  const href = `/documents/${fromArticle.document.titleSlug}`;
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '8px',
+      padding: '8px 12px',
+      marginBottom: '10px',
+      backgroundColor: banner.bg,
+      border: `1px solid ${banner.border}`,
+      borderRadius: '6px',
+      fontSize: '13px',
+      lineHeight: 1.5,
+    }}>
+      <span style={{ flexShrink: 0, marginTop: '1px' }}>{banner.icon}</span>
+      <span style={{ color: banner.color }}>
+        Điều này {banner.label}{' '}
+        <Link
+          href={href}
+          style={{ color: banner.color, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Điều {fromArticle.articleNumber}
+          {fromArticle.title ? ` (${fromArticle.title})` : ''}
+          , {fromArticle.document.documentNumber}
+          <ExternalLink size={11} style={{ display: 'inline', marginLeft: '3px', verticalAlign: 'middle' }} />
+        </Link>
+        {relation.note && (
+          <span style={{ color: '#6b7280', fontStyle: 'italic' }}> — {relation.note}</span>
+        )}
+      </span>
+    </div>
+  );
 }
 
 export function ContentTab({ articles, contentLoading, scrollContainer, onArticleVisible }: Props) {
@@ -107,6 +161,15 @@ export function ContentTab({ articles, contentLoading, scrollContainer, onArticl
                   <span style={{ fontWeight: 600 }}>. {article.title}</span>
                 )}
               </h3>
+
+              {/* Amendment/guidance banners */}
+              {article.relationsTo && article.relationsTo.length > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  {article.relationsTo.map(rel => (
+                    <ArticleRelationBanner key={rel.id} relation={rel} />
+                  ))}
+                </div>
+              )}
 
               {/* Article body */}
               <div

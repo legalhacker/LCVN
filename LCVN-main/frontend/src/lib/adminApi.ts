@@ -68,6 +68,25 @@ export function createAdminApi(token: string) {
       });
     },
 
+    uploadDocumentFile: async (id: string, file: File) => {
+      const { upload } = await import('@vercel/blob/client');
+      const blob = await upload(`documents/${id}/${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: `/api/admin/documents/${id}/file`,
+        // JWT + fileSize travel via clientPayload (HTTPS-encrypted body, not headers)
+        clientPayload: JSON.stringify({ jwtToken: token, fileSize: file.size }),
+      });
+      return {
+        success: true,
+        downloadUrl: blob.url,
+        downloadFileName: file.name,
+        downloadFileSize: file.size,
+      };
+    },
+
+    deleteDocumentFile: (id: string) =>
+      fetchAdmin(`/api/admin/documents/${id}/file`, opts({ method: 'DELETE' })),
+
     // Articles
     getArticles: (docId: string) => fetchAdmin(`/api/admin/articles/document/${docId}`, opts()),
     getArticle: (id: string) => fetchAdmin(`/api/admin/articles/${id}`, opts()),
@@ -80,7 +99,27 @@ export function createAdminApi(token: string) {
     reorderArticles: (docId: string, order: Array<{ id: string; orderIndex: number }>) =>
       fetchAdmin(`/api/admin/articles/document/${docId}/reorder`, opts({ method: 'PUT', body: JSON.stringify({ order }) })),
 
-    // Relations
+    // Article search (used to pick link targets — excludes current document)
+    searchArticles: (params: Record<string, string>) => {
+      const q = '?' + new URLSearchParams(params).toString();
+      return fetchAdmin(`/api/admin/articles/search${q}`, opts());
+    },
+
+    // Article-level relations (cross-article amendment/guidance links)
+    getArticleRelations: (articleId: string) =>
+      fetchAdmin(`/api/admin/article-relations/article/${articleId}`, opts()),
+    createArticleRelation: (data: Record<string, unknown>) =>
+      fetchAdmin('/api/admin/article-relations', opts({ method: 'POST', body: JSON.stringify(data) })),
+    deleteArticleRelation: (id: string) =>
+      fetchAdmin(`/api/admin/article-relations/${id}`, opts({ method: 'DELETE' })),
+    importArticleRelations: (relations: unknown[]) =>
+      fetchAdmin('/api/admin/article-relations/import', opts({ method: 'POST', body: JSON.stringify({ relations }) })),
+
+    // Article annotations (legal notes, admin-managed)
+    importArticleAnnotations: (annotations: unknown[]) =>
+      fetchAdmin('/api/admin/article-annotations/import', opts({ method: 'POST', body: JSON.stringify({ annotations }) })),
+
+    // Document-level relations
     getRelations: (docId: string) => fetchAdmin(`/api/admin/relations/document/${docId}`, opts()),
     createRelation: (data: Record<string, unknown>) =>
       fetchAdmin('/api/admin/relations', opts({ method: 'POST', body: JSON.stringify(data) })),

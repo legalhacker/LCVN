@@ -46,6 +46,9 @@ export interface Document {
   keywords: string[];
   summary?: string;
   _count?: { articles: number };
+  downloadUrl?: string;
+  downloadFileName?: string;
+  downloadFileSize?: number;
 }
 
 export interface DocumentsResponse {
@@ -80,6 +83,26 @@ export async function getDocuments(filters: DocumentFilters = {}): Promise<Docum
   return fetchAPI<DocumentsResponse>(`/api/documents${query ? `?${query}` : ''}`);
 }
 
+export type ArticleRelationType =
+  | 'guides' | 'amends' | 'repeals' | 'replaces'
+  | 'references' | 'implements' | 'conflicts_with' | 'interpreted_by';
+
+export interface ArticleRelationInfo {
+  id: string;
+  relationType: ArticleRelationType;
+  note?: string;
+  fromArticle: {
+    id: string;
+    articleNumber: string;
+    title?: string;
+    document: {
+      documentNumber: string;
+      title: string;
+      titleSlug: string;
+    };
+  };
+}
+
 export interface Article {
   id: string;
   articleId: string;
@@ -95,6 +118,7 @@ export interface Article {
   keywords: string[];
   summary?: string;
   hasPracticalReferences: boolean;
+  relationsTo?: ArticleRelationInfo[];
 }
 
 export interface TocArticle {

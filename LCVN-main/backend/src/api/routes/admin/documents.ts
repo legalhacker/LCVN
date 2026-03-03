@@ -1,10 +1,13 @@
 import { Router, Response, Request } from 'express';
 import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
 import multer from 'multer';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../../../services/prisma.js';
 import { requireAdmin } from '../../middleware/adminAuth.js';
 import { AuthRequest } from '../../middleware/auth.js';
 import { parseDocx } from '../../../services/documentParser.js';
+import { config } from '../../../config/index.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -302,9 +305,9 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
     try {
       await prisma.$transaction([
         prisma.article.deleteMany({ where: { documentId: req.params.id } }),
-        prisma.article.createMany({ data: articlesData as Parameters<typeof prisma.article.createMany>[0]['data'] }),
+        prisma.article.createMany({ data: articlesData as Prisma.ArticleCreateManyInput[] }),
         ...(allClauses.length > 0
-          ? [prisma.clause.createMany({ data: allClauses as Parameters<typeof prisma.clause.createMany>[0]['data'] })]
+          ? [prisma.clause.createMany({ data: allClauses as Prisma.ClauseCreateManyInput[] })]
           : []),
       ]);
     } catch (txErr) {
@@ -317,6 +320,107 @@ router.post('/:id/json-articles', requireAdmin, async (req: Request, res: Respon
     }
 
     res.json({ success: true, articleCount: articlesData.length, clauseCount: allClauses.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/admin/documents/:id/file — client-side Vercel Blob upload handler
+// Phase 1 (browser → here): validate admin JWT, return Blob client token
+// Phase 2 (Vercel CDN → here): save blob URL to DB
+// No multer — file never passes through this function, goes directly to Vercel Blob CDN
+router.post('/:id/file', async (req: Request, res: Response, next) => {
+  try {
+    const docId = req.params.id;
+    // handleUpload lives in @vercel/blob/client in v0.27.x (not main package)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { handleUpload } = await import('@vercel/blob/client') as any;
+
+    // Shim Express req → Web Fetch API Request (handleUpload expects .headers.get())
+    const webReq = {
+      headers: { get: (key: string) => req.get(key) ?? null },
+    } as unknown as globalThis.Request;
+
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: webReq,
+      onBeforeGenerateToken: async (_pathname: string, clientPayload?: string) => {
+        // JWT + fileSize are passed via clientPayload from the browser
+        const { jwtToken, fileSize = 0 } = clientPayload ? JSON.parse(clientPayload) : {};
+        if (!jwtToken) throw new Error('Authentication required');
+        const decoded = jwt.verify(jwtToken, config.jwt.secret) as { userId: string };
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { isAdmin: true, isActive: true },
+        });
+        if (!user?.isActive || !user?.isAdmin) throw new Error('Admin access required');
+
+        const doc = await prisma.document.findUnique({ where: { id: docId } });
+        if (!doc) throw new Error('Document not found');
+
+        return {
+          allowedContentTypes: [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/msword',
+          ],
+          maximumSizeInBytes: 50 * 1024 * 1024,
+          tokenPayload: JSON.stringify({ docId, fileSize }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }: {
+        blob: { url: string; pathname: string };
+        tokenPayload?: string;
+      }) => {
+        const { docId: id, fileSize = 0 } = JSON.parse(tokenPayload || '{}');
+        const fileName = (blob.pathname as string).split('/').pop() || blob.pathname;
+
+        const existing = await prisma.document.findUnique({
+          where: { id },
+          select: { downloadUrl: true },
+        });
+        if (existing?.downloadUrl && existing.downloadUrl !== blob.url) {
+          const { del } = await import('@vercel/blob');
+          await del(existing.downloadUrl).catch(() => {});
+        }
+
+        await prisma.document.update({
+          where: { id },
+          data: { downloadUrl: blob.url, downloadFileName: fileName, downloadFileSize: fileSize },
+        });
+      },
+    });
+
+    res.json(jsonResponse);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/admin/documents/:id/file — remove original file from Vercel Blob
+router.delete('/:id/file', requireAdmin, async (req: Request, res: Response, next) => {
+  try {
+    const doc = await prisma.document.findUnique({
+      where: { id: req.params.id },
+      select: { downloadUrl: true },
+    });
+
+    if (!doc) {
+      res.status(404).json({ error: 'Document not found' });
+      return;
+    }
+
+    if (doc.downloadUrl) {
+      const { del } = await import('@vercel/blob');
+      await del(doc.downloadUrl).catch(() => {});
+    }
+
+    await prisma.document.update({
+      where: { id: req.params.id },
+      data: { downloadUrl: null, downloadFileName: null, downloadFileSize: null },
+    });
+
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }
