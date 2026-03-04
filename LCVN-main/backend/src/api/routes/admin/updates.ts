@@ -101,6 +101,21 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response, next) =>
   }
 });
 
+// PATCH /api/admin/updates/:id/file — save blob URL after client-side upload
+router.patch('/:id/file', requireAdmin, async (req: Request, res: Response, next) => {
+  try {
+    const { downloadUrl, downloadFileName, downloadFileSize } = req.body;
+    if (!downloadUrl) { res.status(400).json({ error: 'downloadUrl required' }); return; }
+    const update = await prisma.legalUpdate.update({
+      where: { id: req.params.id },
+      data: { downloadUrl, downloadFileName: downloadFileName || null, downloadFileSize: downloadFileSize || null },
+    });
+    res.json({ success: true, downloadUrl: update.downloadUrl });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/admin/updates/:id/file — Vercel Blob client upload handler
 router.post('/:id/file', async (req: Request, res: Response, next) => {
   try {

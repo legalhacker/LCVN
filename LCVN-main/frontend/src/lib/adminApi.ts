@@ -151,5 +151,28 @@ export function createAdminApi(token: string) {
       fetchAdmin(`/api/admin/updates/${id}`, opts({ method: 'PUT', body: JSON.stringify(data) })),
     deleteUpdate: (id: string) =>
       fetchAdmin(`/api/admin/updates/${id}`, opts({ method: 'DELETE' })),
+
+    uploadUpdateFile: async (id: string, file: File) => {
+      const { upload } = await import('@vercel/blob/client');
+      const blob = await upload(`updates/${id}/${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: `/api/admin/updates/${id}/file`,
+        clientPayload: JSON.stringify({ jwtToken: token, fileSize: file.size }),
+      });
+      // Save blob URL to DB via PATCH (more reliable than onUploadCompleted callback)
+      await fetchAdmin(`/api/admin/updates/${id}/file`, opts({
+        method: 'PATCH',
+        body: JSON.stringify({ downloadUrl: blob.url, downloadFileName: file.name, downloadFileSize: file.size }),
+      }));
+      return {
+        success: true,
+        downloadUrl: blob.url,
+        downloadFileName: file.name,
+        downloadFileSize: file.size,
+      };
+    },
+
+    deleteUpdateFile: (id: string) =>
+      fetchAdmin(`/api/admin/updates/${id}/file`, opts({ method: 'DELETE' })),
   };
 }
