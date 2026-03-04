@@ -16,6 +16,7 @@ import annotationRoutes from './api/routes/annotations.js';
 import notificationRoutes from './api/routes/notifications.js';
 import adminRouter from './api/routes/admin/index.js';
 import aiRouter from './api/routes/ai.js';
+import updatesRouter from './api/routes/updates.js';
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/annotations', annotationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/updates', updatesRouter);
 
 // Error handling
 app.use(errorHandler);
