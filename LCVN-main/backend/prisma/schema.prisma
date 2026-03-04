@@ -609,10 +609,13 @@ model LegalUpdate {
   publishDate   DateTime @map("publish_date")
   isHighlighted Boolean  @default(false) @map("is_highlighted")
   isPublished   Boolean  @default(false) @map("is_published")
-  relatedDocIds String[] @map("related_doc_ids")
-  createdById   String   @map("created_by_id")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  relatedDocIds    String[] @map("related_doc_ids")
+  downloadUrl      String?  @map("download_url")       @db.VarChar(1000)
+  downloadFileName String?  @map("download_file_name") @db.VarChar(255)
+  downloadFileSize Int?     @map("download_file_size")
+  createdById      String   @map("created_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("legal_updates")
 }
